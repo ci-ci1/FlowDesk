@@ -3,123 +3,177 @@
     ViewBag.Title = "LoginIndex";
 }
 
-<div class="layui-layout layui-layout-admin">
-    <div class="layui-header">
-        <div class="layui-logo layui-hide-xs layui-bg-black">layout demo</div>
-        <!-- 头部区域（可配合layui 已有的水平导航） -->
-        <ul class="layui-nav layui-layout-left">
-            <!-- 移动端显示 -->
-            <li class="layui-nav-item layui-show-xs-inline-block layui-hide-sm" lay-header-event="menuLeft">
-                <i class="layui-icon layui-icon-spread-left"></i>
-            </li>
-            <li class="layui-nav-item layui-hide-xs"><a href="javascript:;">nav 1</a></li>
-            <li class="layui-nav-item layui-hide-xs"><a href="javascript:;">nav 2</a></li>
-            <li class="layui-nav-item layui-hide-xs"><a href="javascript:;">nav 3</a></li>
-            <li class="layui-nav-item">
-                <a href="javascript:;">nav groups</a>
-                <dl class="layui-nav-child">
-                    <dd><a href="javascript:;">menu 11</a></dd>
-                    <dd><a href="javascript:;">menu 22</a></dd>
-                    <dd><a href="javascript:;">menu 33</a></dd>
-                </dl>
-            </li>
-        </ul>
-        <ul class="layui-nav layui-layout-right">
-            <li class="layui-nav-item layui-hide layui-show-sm-inline-block">
-                <a href="javascript:;">
-                    <img src="//unpkg.com/outeres@0.0.10/img/layui/icon-v2.png" class="layui-nav-img">
-                    tester
-                </a>
-                <dl class="layui-nav-child">
-                    <dd><a href="javascript:;">Your Profile</a></dd>
-                    <dd><a href="javascript:;">Settings</a></dd>
-                    <dd><a href="javascript:;">Sign out</a></dd>
-                </dl>
-            </li>
-            <li class="layui-nav-item" lay-header-event="menuRight" lay-unselect>
-                <a href="javascript:;">
-                    <i class="layui-icon layui-icon-more-vertical"></i>
-                </a>
-            </li>
-        </ul>
-    </div>
-    <div class="layui-side layui-bg-black">
-        <div class="layui-side-scroll">
-            <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
-            <ul class="layui-nav layui-nav-tree" lay-filter="test">
-                <li class="layui-nav-item">
-                    <a class="" href="javascript:;">menu group 1</a>
-                    <dl class="layui-nav-child">
-                        <dd><a href="javascript:;">menu 1</a></dd>
-                        <dd><a href="javascript:;">menu 2</a></dd>
-                        <dd><a href="javascript:;">menu 3</a></dd>
-                        <dd><a href="javascript:;">the links</a></dd>
-                    </dl>
-                </li>
-                <li class="layui-nav-item">
-                    <a href="javascript:;">menu group 2</a>
-                    <dl class="layui-nav-child">
-                        <dd><a href="javascript:;">list 1</a></dd>
-                        <dd><a href="javascript:;">list 2</a></dd>
-                        <dd><a href="javascript:;">超链接</a></dd>
-                    </dl>
-                </li>
-                <li class="layui-nav-item"><a href="javascript:;">click menu item</a></li>
-                <li class="layui-nav-item"><a href="javascript:;">the links</a></li>
-            </ul>
-        </div>
-    </div>
-    <div class="layui-body">
-        <!-- 内容主体区域 -->
-        <div style="padding: 15px;">
-            <blockquote class="layui-elem-quote layui-text">
-                Layui 框体布局内容主体区域
-            </blockquote>
-            <div class="layui-card layui-panel">
-                <div class="layui-card-header">
-                    下面是充数内容，为的是出现滚动条
+
+
+
+    <div class="w-full max-w-6xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+        <!-- 左侧创意视觉区 -->
+        <div class="w-full md:w-1/2 bg-gradient-to-br from-primary to-secondary bg-gradient-animation p-8 md:p-12 flex flex-col justify-center items-center text-white relative overflow-hidden">
+            <!-- 装饰元素 -->
+            <div class="absolute top-10 right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-10 left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+
+            <!-- 品牌/logo区域 -->
+            <div class="relative z-10 text-center mb-8">
+                <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 float-animation">
+                    <i class="fa fa-cogs text-3xl"></i>
                 </div>
-                <div class="layui-card-body">
-                    充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>充数内容<br>你还真滑到了底部呀
+                <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold mb-2">AdminPro</h1>
+                <p class="text-white/80 text-lg">智能高效的后台管理系统</p>
+            </div>
+
+            <!-- 特色描述 -->
+            <div class="relative z-10 space-y-4 text-white/90">
+                <div class="flex items-center gap-3">
+                    <i class="fa fa-shield text-xl w-6 text-center"></i>
+                    <span>多重安全验证，保障数据安全</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <i class="fa fa-bolt text-xl w-6 text-center"></i>
+                    <span>极致性能优化，响应毫秒级</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <i class="fa fa-mobile text-xl w-6 text-center"></i>
+                    <span>全端自适应，随时随地管理</span>
                 </div>
             </div>
-            <br><br>
+
+            <!-- 底部版权信息 -->
+            <div class="absolute bottom-6 text-white/60 text-sm">
+                © 2026 AdminPro. All rights reserved.
+            </div>
+        </div>
+
+        <!-- 右侧登录表单区 -->
+        <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+            <div class="max-w-md mx-auto w-full">
+                <!-- 登录标题 -->
+                <div class="mb-8">
+                    <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-dark mb-2">欢迎回来</h2>
+                    <p class="text-gray-500">请输入您的账号信息登录系统</p>
+                </div>
+
+                <!-- 登录表单 -->
+                <form id="loginForm" class="space-y-5">
+                    <!-- 用户名输入框 -->
+                    <div class="relative">
+                        <label for="username" class="block text-sm font-medium text-gray-700 mb-1">用户名/邮箱</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                <i class="fa fa-user"></i>
+                            </span>
+                            <input type="text" id="username" name="username"
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none input-focus transition-all"
+                                   placeholder="请输入用户名" required>
+                        </div>
+                    </div>
+
+                    <!-- 密码输入框 -->
+                    <div class="relative">
+                        <div class="flex justify-between items-center mb-1">
+                            <label for="password" class="block text-sm font-medium text-gray-700">密码</label>
+                            <a href="#" class="text-sm text-primary hover:text-primary/80 transition-colors">忘记密码？</a>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                <i class="fa fa-lock"></i>
+                            </span>
+                            <input type="password" id="password" name="password"
+                                   class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none input-focus transition-all"
+                                   placeholder="请输入密码" required>
+                            <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-primary transition-colors">
+                                <i class="fa fa-eye-slash" id="passwordIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 记住我 -->
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember" name="remember" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                        <label for="remember" class="ml-2 text-sm text-gray-600">记住我 (7天内免登录)</label>
+                    </div>
+
+                    <!-- 登录按钮 -->
+                    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-medium btn-hover flex items-center justify-center gap-2">
+                        <i class="fa fa-sign-in"></i>
+                        <span>登录系统</span>
+                    </button>
+                </form>
+
+                <!-- 其他登录方式 -->
+                <div class="mt-8">
+                    <div class="relative flex items-center justify-center mb-6">
+                        <hr class="w-full border-gray-200">
+                        <span class="absolute bg-white px-4 text-sm text-gray-500">其他登录方式</span>
+                    </div>
+                    <div class="flex justify-center gap-4">
+                        <button class="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-primary/5 hover:text-primary transition-all">
+                            <i class="fa fa-weixin text-xl"></i>
+                        </button>
+                        <button class="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-primary/5 hover:text-primary transition-all">
+                            <i class="fa fa-github text-xl"></i>
+                        </button>
+                        <button class="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-primary/5 hover:text-primary transition-all">
+                            <i class="fa fa-google text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="layui-footer">
-        <!-- 底部固定区域 -->
-        底部固定区域
-    </div>
-</div>
 
+    <script>
+        // 密码显示/隐藏切换
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        const passwordIcon = document.getElementById('passwordIcon');
 
-<script>
-    //JS
-    layui.use(['element', 'layer', 'util'], function () {
-        var element = layui.element;
-        var layer = layui.layer;
-        var util = layui.util;
-        var $ = layui.$;
+        togglePassword.addEventListener('click', function () {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
 
-        //头部事件
-        util.event('lay-header-event', {
-            menuLeft: function (othis) { // 左侧菜单事件
-                layer.msg('展开左侧菜单的操作', { icon: 0 });
-            },
-            menuRight: function () {  // 右侧菜单事件
-                layer.open({
-                    type: 1,
-                    title: '更多',
-                    content: '<div style="padding: 15px;">处理右侧面板的操作</div>',
-                    area: ['260px', '100%'],
-                    offset: 'rt', // 右上角
-                    anim: 'slideLeft', // 从右侧抽屉滑出
-                    shadeClose: true,
-                    scrollbar: false
-                });
+            // 切换图标
+            if (type === 'text') {
+                passwordIcon.classList.remove('fa-eye-slash');
+                passwordIcon.classList.add('fa-eye');
+            } else {
+                passwordIcon.classList.remove('fa-eye');
+                passwordIcon.classList.add('fa-eye-slash');
             }
         });
-    });
-</script>
+
+        // 表单提交处理
+        const loginForm = document.getElementById('loginForm');
+        loginForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // 获取表单数据
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('remember').checked;
+
+            // 模拟登录验证
+            console.log('登录信息:', { username, password, remember });
+
+            // 这里可以替换为真实的登录API请求
+            alert('登录成功！(演示模式)');
+
+            // 实际项目中，验证通过后跳转到后台首页
+            // window.location.href = '/dashboard';
+        });
+
+        // 添加输入框动画效果
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function () {
+                this.parentElement.classList.add('scale-[1.01]');
+                this.parentElement.classList.add('transition-transform');
+            });
+            input.addEventListener('blur', function () {
+                this.parentElement.classList.remove('scale-[1.01]');
+            });
+        });
+    </script>
+
 
 
