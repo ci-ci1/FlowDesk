@@ -1,5 +1,6 @@
 ﻿using FlowDesk.Controllers.Filters;
 using FlowDesk.Models;
+using FlowDesk.Models.ViewModels;
 using System;
 using System.Linq;
 using System.Web.Mvc;
@@ -249,5 +250,201 @@ namespace FlowDesk.Controllers
             }, JsonRequestBehavior.AllowGet);
         }
         #endregion
+
+        #region Detail
+        public ActionResult Detail(long id)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return RedirectToAction("LoginIndex", "Login");
+
+            var ticket = db.Tickets.FirstOrDefault(t => t.Id == id && t.IsDeleted == false);
+            if (ticket == null) return Content("工单不存在");
+
+            var vm = new TicketDetailVM
+            {
+                Ticket = ticket,
+                Creator = db.Users.FirstOrDefault(u => u.Id == ticket.CreatorId),
+                Assignee = ticket.AssigneeId == null ? null : db.Users.FirstOrDefault(u => u.Id == ticket.AssigneeId),
+                Category = ticket.CategoryId == null ? null : db.TicketCategories.FirstOrDefault(c => c.Id == ticket.CategoryId),
+
+                FlowLogs = db.TicketFlowLogs
+                            .Where(x => x.TicketId == id)
+                            .OrderByDescending(x => x.CreatedAt)
+                            .ToList(),
+
+                Comments = db.TicketComments
+                            .Where(x => x.TicketId == id)
+                            .OrderByDescending(x => x.CreatedAt)
+                            .ToList()
+            };
+
+            ViewBag.MeId = me.Id; // 前端判断是否本人/是否处理人时用
+            return View(vm);
+        }
+
+        #endregion
+
+        #region 评论接口
+        [HttpPost]
+        public ActionResult AddComment(long ticketId, string content)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+
+            if (string.IsNullOrWhiteSpace(content))
+                return Json(new { code = 1, msg = "评论不能为空" });
+
+            var ticket = db.Tickets.FirstOrDefault(t => t.Id == ticketId && t.IsDeleted == false);
+            if (ticket == null) return Json(new { code = 1, msg = "工单不存在" });
+
+            var c = new TicketComments
+            {
+                TicketId = ticketId,
+                UserId = me.Id,
+                Content = content.Trim(),
+                CreatedAt = DateTime.Now
+            };
+            db.TicketComments.Add(c);
+            db.SaveChanges();
+
+            return Json(new { code = 0, msg = "ok" });
+        }
+        #endregion
+
+        #region 状态流转接口
+        private void AddFlowLog(long ticketId, byte? fromStatus, byte toStatus, string action, long operatorId, string remark)
+        {
+            db.TicketFlowLogs.Add(new TicketFlowLogs
+            {
+                TicketId = ticketId,
+                FromStatus = fromStatus,
+                ToStatus = toStatus,
+                Action = action,
+                OperatorId = operatorId,
+                Remark = remark,
+                CreatedAt = DateTime.Now
+            });
+        }
+        #endregion
+
+        #region 指派处理人 Assign
+        [HttpPost]
+        public ActionResult Assign(long ticketId, long assigneeId)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+
+            var ticket = db.Tickets.FirstOrDefault(t => t.Id == ticketId && t.IsDeleted == false);
+            if (ticket == null) return Json(new { code = 1, msg = "工单不存在" });
+
+            // 简化权限：先不判断角色，后面加 RBAC
+            ticket.AssigneeId = assigneeId;
+
+            AddFlowLog(ticket.Id, ticket.Status, ticket.Status, "ASSIGN", me.Id, "指派处理人");
+            db.SaveChanges();
+
+            return Json(new { code = 0, msg = "ok" });
+        }
+        #endregion
+
+        #region 受理 Accept
+        [HttpPost]
+        public ActionResult Accept(long ticketId)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+
+            var ticket = db.Tickets.FirstOrDefault(t => t.Id == ticketId && t.IsDeleted == false);
+            if (ticket == null) return Json(new { code = 1, msg = "工单不存在" });
+
+            if (ticket.Status != (byte)1)
+                return Json(new { code = 1, msg = "当前状态不允许受理" });
+
+            // 如果没有处理人，默认把当前用户作为处理人
+            if (ticket.AssigneeId == null) ticket.AssigneeId = me.Id;
+
+            var from = ticket.Status;
+            ticket.Status = (byte)2;
+            ticket.AcceptedAt = DateTime.Now;
+
+            AddFlowLog(ticket.Id, from, ticket.Status, "ACCEPT", me.Id, "受理工单");
+            db.SaveChanges();
+
+            return Json(new { code = 0, msg = "ok" });
+        }
+        #endregion
+
+        #region 开始处理 StartProcess
+        [HttpPost]
+        public ActionResult StartProcess(long ticketId)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+
+            var ticket = db.Tickets.FirstOrDefault(t => t.Id == ticketId && t.IsDeleted == false);
+            if (ticket == null) return Json(new { code = 1, msg = "工单不存在" });
+
+            if (ticket.Status != (byte)2)
+                return Json(new { code = 1, msg = "当前状态不允许开始处理" });
+
+            var from = ticket.Status;
+            ticket.Status = (byte)3;
+
+            AddFlowLog(ticket.Id, from, ticket.Status, "PROCESS", me.Id, "开始处理");
+            db.SaveChanges();
+
+            return Json(new { code = 0, msg = "ok" });
+        }
+        #endregion
+
+        #region 完成 Done
+        [HttpPost]
+        public ActionResult Done(long ticketId, string remark = null)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+
+            var ticket = db.Tickets.FirstOrDefault(t => t.Id == ticketId && t.IsDeleted == false);
+            if (ticket == null) return Json(new { code = 1, msg = "工单不存在" });
+
+            if (ticket.Status != (byte)3)
+                return Json(new { code = 1, msg = "当前状态不允许完成" });
+
+            var from = ticket.Status;
+            ticket.Status = (byte)5;
+            ticket.ResolvedAt = DateTime.Now;
+
+            AddFlowLog(ticket.Id, from, ticket.Status, "DONE", me.Id, string.IsNullOrWhiteSpace(remark) ? "完成工单" : remark);
+            db.SaveChanges();
+
+            return Json(new { code = 0, msg = "ok" });
+        }
+        #endregion
+
+        #region 关闭Close
+        [HttpPost]
+        public ActionResult Close(long ticketId, string remark = null)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+
+            var ticket = db.Tickets.FirstOrDefault(t => t.Id == ticketId && t.IsDeleted == false);
+            if (ticket == null) return Json(new { code = 1, msg = "工单不存在" });
+
+            if (ticket.Status == (byte)6)
+                return Json(new { code = 1, msg = "工单已关闭" });
+
+            var from = ticket.Status;
+            ticket.Status = (byte)6;
+            ticket.ClosedAt = DateTime.Now;
+
+            AddFlowLog(ticket.Id, from, ticket.Status, "CLOSE", me.Id, string.IsNullOrWhiteSpace(remark) ? "关闭工单" : remark);
+            db.SaveChanges();
+
+            return Json(new { code = 0, msg = "ok" });
+        }
+        #endregion
+
+
     }
 }

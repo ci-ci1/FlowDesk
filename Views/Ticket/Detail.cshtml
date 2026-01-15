@@ -1,0 +1,154 @@
+﻿@model FlowDesk.Models.ViewModels.TicketDetailVM
+@{
+    ViewBag.Title = "工单详情";
+    Layout = null;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">
+        工单详情：@Model.Ticket.Code
+    </blockquote>
+
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md7">
+            <div class="layui-card">
+                <div class="layui-card-header">基本信息</div>
+                <div class="layui-card-body">
+                    <div><b>标题：</b>@Model.Ticket.Title</div>
+                    <div style="margin-top:6px;"><b>状态：</b><span id="statusText"></span></div>
+                    <div style="margin-top:6px;"><b>优先级：</b><span id="priorityText"></span></div>
+                    <div style="margin-top:6px;"><b>分类：</b>@(Model.Category?.Name ?? "未分类")</div>
+                    <div style="margin-top:6px;"><b>创建人：</b>@(Model.Creator?.RealName ?? "")</div>
+                    <div style="margin-top:6px;"><b>处理人：</b>@(Model.Assignee?.RealName ?? "未指派")</div>
+                    <hr />
+                    <div><b>描述：</b></div>
+                    <div style="white-space:pre-wrap;">@Model.Ticket.Description</div>
+
+                    <hr />
+                    <div>
+                        <button class="layui-btn layui-btn-sm" onclick="doAccept()">受理</button>
+                        <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="doProcess()">开始处理</button>
+                        <button class="layui-btn layui-btn-sm layui-btn-warm" onclick="doDone()">完成</button>
+                        <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="doClose()">关闭</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-card" style="margin-top:10px;">
+                <div class="layui-card-header">评论</div>
+                <div class="layui-card-body">
+                    <div class="layui-form">
+                        <textarea id="comment" placeholder="输入评论..." class="layui-textarea"></textarea>
+                        <button class="layui-btn layui-btn-sm" style="margin-top:8px;" onclick="addComment()">提交评论</button>
+                    </div>
+
+                    <hr />
+                    @foreach (var c in Model.Comments)
+                    {
+                        <div style="margin-bottom:10px;">
+                            <div class="layui-text" style="color:#666;">
+                                用户ID：@c.UserId  时间：@c.CreatedAt
+                            </div>
+                            <div style="white-space:pre-wrap;">@c.Content</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-col-md5">
+            <div class="layui-card">
+                <div class="layui-card-header">流转日志</div>
+                <div class="layui-card-body">
+                    <ul class="layui-timeline">
+                        @foreach (var f in Model.FlowLogs)
+                        {
+                            <li class="layui-timeline-item">
+                                <i class="layui-icon layui-timeline-axis">&#xe63f;</i>
+                                <div class="layui-timeline-content layui-text">
+                                    <h3 class="layui-timeline-title">@f.CreatedAt</h3>
+                                    <div>动作：@f.Action</div>
+                                    <div>状态：@f.FromStatus -> @f.ToStatus</div>
+                                    <div>操作人ID：@f.OperatorId</div>
+                                    <div>备注：@f.Remark</div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+var ticketId = @Model.Ticket.Id;
+var status = @Model.Ticket.Status;
+var priority = @Model.Ticket.Priority;
+
+layui.use(['layer'], function () {
+    setText();
+});
+
+function setText(){
+    $('#statusText').text(statusName(status));
+    $('#priorityText').html(priorityName(priority));
+}
+
+function statusName(v){
+    switch(v){
+        case 1: return '新建';
+        case 2: return '已受理';
+        case 3: return '处理中';
+        case 5: return '已完成';
+        case 6: return '已关闭';
+        default: return '状态' + v;
+    }
+}
+function priorityName(v){
+    switch(v){
+        case 1: return '低';
+        case 2: return '中';
+        case 3: return '高';
+        case 4: return '<span style="color:#FF5722;">紧急</span>';
+        default: return v;
+    }
+}
+
+function post(url, data, okMsg){
+    $.post(url, data, function(res){
+        if(res.code === 0){
+            layui.layer.msg(okMsg || '操作成功', {icon:1, time:800}, function(){
+                location.reload(); // 简单粗暴：刷新详情页，重新加载状态/日志/评论
+            });
+        }else{
+            layui.layer.msg(res.msg || '操作失败', {icon:5});
+        }
+    });
+}
+
+function doAccept(){ post('/Ticket/Accept', { ticketId: ticketId }, '已受理'); }
+function doProcess(){ post('/Ticket/StartProcess', { ticketId: ticketId }, '开始处理'); }
+function doDone(){
+    layui.layer.prompt({title:'完成备注（可选）', formType: 2}, function(text, index){
+        layui.layer.close(index);
+        post('/Ticket/Done', { ticketId: ticketId, remark: text }, '已完成');
+    });
+}
+function doClose(){
+    layui.layer.prompt({title:'关闭原因（可选）', formType: 2}, function(text, index){
+        layui.layer.close(index);
+        post('/Ticket/Close', { ticketId: ticketId, remark: text }, '已关闭');
+    });
+}
+
+function addComment(){
+    var content = $('#comment').val();
+    post('/Ticket/AddComment', { ticketId: ticketId, content: content }, '评论已提交');
+}
+</script>

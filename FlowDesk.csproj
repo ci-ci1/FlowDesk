@@ -193,6 +193,7 @@
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\ViewModels\MenuNode.cs" />
+    <Compile Include="Models\ViewModels\TicketDetailVM.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -211,6 +212,8 @@
     <Content Include="Views\Ticket\Index.cshtml" />
     <Content Include="Views\Ticket\Create.cshtml" />
     <Content Include="Views\Ticket\Report.cshtml" />
+    <Content Include="Views\Login\View.cshtml" />
+    <Content Include="Views\Ticket\Detail.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
