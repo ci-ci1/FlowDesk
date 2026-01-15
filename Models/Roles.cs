@@ -12,23 +12,18 @@ namespace FlowDesk.Models
     using System;
     using System.Collections.Generic;
     
-    public partial class Menus
+    public partial class Roles
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
-        public Menus()
+        public Roles()
         {
             this.RoleMenus = new HashSet<RoleMenus>();
+            this.UserRoles = new HashSet<UserRoles>();
         }
     
         public long Id { get; set; }
-        public long ParentId { get; set; }
+        public string Code { get; set; }
         public string Name { get; set; }
-        public byte MenuType { get; set; }
-        public string Url { get; set; }
-        public string Icon { get; set; }
-        public string PermKey { get; set; }
-        public int Sort { get; set; }
-        public bool IsVisible { get; set; }
         public byte Status { get; set; }
         public string Remark { get; set; }
         public System.DateTime CreatedAt { get; set; }
@@ -37,5 +32,7 @@ namespace FlowDesk.Models
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<RoleMenus> RoleMenus { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<UserRoles> UserRoles { get; set; }
     }
 }

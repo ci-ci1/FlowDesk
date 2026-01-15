@@ -27,5 +27,8 @@ namespace FlowDesk.Models
     
         public virtual DbSet<Users> Users { get; set; }
         public virtual DbSet<Menus> Menus { get; set; }
+        public virtual DbSet<RoleMenus> RoleMenus { get; set; }
+        public virtual DbSet<Roles> Roles { get; set; }
+        public virtual DbSet<UserRoles> UserRoles { get; set; }
     }
 }

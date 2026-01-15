@@ -22,6 +22,21 @@ namespace FlowDesk.Controllers
         /// 返回参数
         /// </summary>
         ReturnJsonData returnJsonData = new ReturnJsonData();
+        /// <summary>
+        /// 当前登录用户信息
+        /// </summary>
+        /// <returns></returns>
+        public Users userinfo
+        {
+            get
+            {
+                return Session["LoginUser"] as Users;
+            }
+            set
+            {
+                Session["LoginUser"] = value;
+            }
+        }
         #endregion
 
         // GET: Home
@@ -35,15 +50,18 @@ namespace FlowDesk.Controllers
         #region 首页视图
         public ActionResult Index()
         {
-            var userinfo = Session["LoginUser"] as Users;
             ViewBag.LoginUser = userinfo.RealName;
 
-            // 1=目录 2=菜单（3按钮不渲染在左侧）
-            var menus = db.Menus
-                .Where(m => m.IsDeleted == false
-                            && m.Status == 1
-                            && m.IsVisible == true
-                            && (m.MenuType == (byte)1 || m.MenuType == (byte)2))
+            var menus = (from m in db.Menus
+                         join rm in db.RoleMenus on m.Id equals rm.MenuId
+                         join ur in db.UserRoles on rm.RoleId equals ur.RoleId
+                         where ur.UserId == userinfo.Id
+                               && m.IsDeleted == false
+                               && m.Status == 1
+                               && m.IsVisible == true
+                               && (m.MenuType == (byte)1 || m.MenuType == (byte)2)
+                         select m)
+                .Distinct()
                 .OrderBy(m => m.Sort)
                 .ThenBy(m => m.Id)
                 .ToList();
@@ -52,58 +70,105 @@ namespace FlowDesk.Controllers
         }
         #endregion
 
-        //#region 菜单渲染
-        //private List<MenuNode> GetMenuTree()
-        //{
-        //    // 只拿目录+菜单（按钮权限点先不渲染）
-        //    var menuList = db.Menus
-        //        .Where(m => m.IsDeleted == false
-        //                    && m.Status == 1
-        //                    && m.IsVisible == true
-        //                    && (m.MenuType == 1 || m.MenuType == 2))
-        //        .OrderBy(m => m.Sort)
-        //        .ThenBy(m => m.Id)
-        //        .ToList();
+        #region 个人信息视图
+        public ActionResult ViewPersonalInfo()
+        {
+            if (userinfo != null)
+            {
+                ViewBag.Id = userinfo.Id;
+                ViewBag.UserName = userinfo.UserName;
+                ViewBag.RealName = userinfo.RealName;
+                ViewBag.Email = userinfo.Email;
+                ViewBag.Phone = userinfo.Phone;
+                ViewBag.Status = userinfo.Status;
+                ViewBag.CreatedAt = userinfo.CreatedAt.ToString("yyyy-MM-dd HH:mm");
+                ViewBag.UpdatedAt = userinfo.UpdatedAt.ToString("yyyy-MM-dd HH:mm");
+            }
 
-        //    var nodes = menuList.Select(m => new MenuNode
-        //    {
-        //        Id = m.Id,
-        //        ParentId = m.ParentId,
-        //        Name = m.Name,
-        //        MenuType = m.MenuType,
-        //        Url = m.Url,
-        //        Icon = m.Icon,
-        //        Sort = m.Sort
-        //    }).ToList();
+            return View();
+        }
+        #endregion
 
-        //    return BuildMenuTree(nodes);
-        //}
+        #region 修改密码视图
+        public ActionResult ChangePasswordView()
+        {
+            ViewBag.Id = userinfo.Id;
+            return View();
+        }
+        #endregion
 
-        //private List<MenuNode> BuildMenuTree(List<MenuNode> nodes)
-        //{
-        //    var dict = nodes.ToDictionary(x => x.Id, x => x);
-        //    var roots = new List<MenuNode>();
+        #region 修改个人信息
+        public ActionResult SavePersonalInfo(Users users)
+        {
+            var user = db.Users.Find(users.Id);
+            if (user != null) 
+            {
+                user.Email = users.Email;
+                user.Phone = users.Phone;
+                user.RealName = users.RealName;
+                db.Entry(user).State = System.Data.Entity.EntityState.Modified;
+                if (db.SaveChanges() > 0)
+                {
+                    returnJsonData.code = 0;
+                    returnJsonData.msg = "修改成功！";
+                }
+                else
+                {
+                    returnJsonData.code = 1;
+                    returnJsonData.msg = "修改失败！";
+                }
+            }
+            else
+            {
+                returnJsonData.code = 1;
+                returnJsonData.msg = "当前用户不存在，请退出重新登录！";
+            }
 
-        //    foreach (var n in nodes.OrderBy(x => x.Sort).ThenBy(x => x.Id))
-        //    {
-        //        if (n.ParentId == 0)
-        //        {
-        //            roots.Add(n);
-        //        }
-        //        else if (dict.ContainsKey(n.ParentId))
-        //        {
-        //            dict[n.ParentId].Children.Add(n);
-        //        }
-        //        else
-        //        {
-        //            // 父节点缺失时，兜底当根节点，避免菜单丢
-        //            roots.Add(n);
-        //        }
-        //    }
 
-        //    return roots;
-        //}
-        //#endregion
+            return Json(returnJsonData);
+        }
+        #endregion
+
+        #region 修改密码
+        public ActionResult ChangePassword(int Id, string OldPassword, string NewPassword)
+        {
+            try
+            {
+                var user = db.Users.FirstOrDefault(u => u.Id == Id);
+                if (user == null)
+                {
+                    returnJsonData.code = 1;
+                    returnJsonData.msg = "用户不存在，请退出重新登录！";
+                }
+                else if(OldPassword==userinfo.Password)
+                {
+                    user.Password = NewPassword;
+                    db.Entry(user).State = System.Data.Entity.EntityState.Modified;
+                    if (db.SaveChanges() > 0)
+                    {
+                        returnJsonData.code = 0;
+                        returnJsonData.msg = "修改成功！";
+                    }
+                    else
+                    {
+                        returnJsonData.code = 1;
+                        returnJsonData.msg = "修改失败！";
+                    }
+                }
+                else
+                {
+                    returnJsonData.code = 1;
+                    returnJsonData.msg = "原密码有误，请重新输入！";
+                }
+            }
+            catch (Exception ex)
+            {
+                returnJsonData.code = 1;
+                returnJsonData.msg = "系统异常，请联系管理员！";
+            }
+            return Json(returnJsonData);
+        }
+        #endregion
 
         #region 退出登录
         public ActionResult SignOut()
@@ -122,11 +187,5 @@ namespace FlowDesk.Controllers
             }
         }
         #endregion
-
-        public ActionResult a()
-        {
-            return View();
-        }
-
     }
 }

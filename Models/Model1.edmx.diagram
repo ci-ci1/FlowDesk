@@ -4,9 +4,16 @@
   <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
     <!-- Diagram content (shape and connector positions) -->
     <edmx:Diagrams>
-      <Diagram DiagramId="29004f3e010145fc9100fe34d3d888a8" Name="Diagram1">
+      <Diagram DiagramId="29004f3e010145fc9100fe34d3d888a8" Name="Diagram1" ZoomLevel="109">
         <EntityTypeShape EntityType="FlowDeskModel.Users" Width="1.5" PointX="0.75" PointY="0.75" />
-        <EntityTypeShape EntityType="FlowDeskModel.Menus" Width="1.5" PointX="3.375" PointY="0.75" />
+        <EntityTypeShape EntityType="FlowDeskModel.Menus" Width="1.5" PointX="2.625" PointY="0.75" />
+        <EntityTypeShape EntityType="FlowDeskModel.RoleMenus" Width="1.5" PointX="7.625" PointY="1.75" />
+        <EntityTypeShape EntityType="FlowDeskModel.Roles" Width="1.5" PointX="5.375" PointY="1.875" />
+        <EntityTypeShape EntityType="FlowDeskModel.UserRoles" Width="1.5" PointX="7.625" PointY="4.75" />
+        <AssociationConnector Association="FlowDeskModel.FK_RoleMenus_Menus" />
+        <AssociationConnector Association="FlowDeskModel.FK_RoleMenus_Roles" />
+        <AssociationConnector Association="FlowDeskModel.FK_UserRoles_Roles" />
+        <AssociationConnector Association="FlowDeskModel.FK_UserRoles_Users" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>
