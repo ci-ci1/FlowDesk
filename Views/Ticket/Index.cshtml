@@ -1,0 +1,179 @@
+﻿@using FlowDesk.Models
+@{
+    ViewBag.Title = "工单列表";
+    Layout = null;  // 因为你主框架用 iframe 加载页面，避免重复 Layout
+    var categories = ViewBag.Categories as System.Collections.Generic.List<TicketCategories>;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">
+        工单列表
+    </blockquote>
+
+    <!-- 搜索栏 -->
+    <div class="layui-form layui-card" style="padding:15px;">
+        <div class="layui-row layui-col-space12">
+
+            <div class="layui-col-md3">
+                <input type="text" id="keyword" placeholder="关键词：工单号/标题" class="layui-input" />
+            </div>
+
+            <div class="layui-col-md2">
+                <select id="status" class="layui-select">
+                    <option value="">状态(全部)</option>
+                    <option value="1">新建</option>
+                    <option value="2">已受理</option>
+                    <option value="3">处理中</option>
+                    <option value="4">待确认</option>
+                    <option value="5">已完成</option>
+                    <option value="6">已关闭</option>
+                </select>
+            </div>
+
+            <div class="layui-col-md2">
+                <select id="priority" class="layui-select">
+                    <option value="">优先级(全部)</option>
+                    <option value="1">低</option>
+                    <option value="2">中</option>
+                    <option value="3">高</option>
+                    <option value="4">紧急</option>
+                </select>
+            </div>
+
+            <div class="layui-col-md2">
+                <select id="categoryId" class="layui-select">
+                    <option value="">分类(全部)</option>
+                    @if (categories != null)
+                    {
+                        foreach (var c in categories)
+                        {
+                            <option value="@c.Id">@c.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="layui-col-md3" style="text-align:right;">
+                <button class="layui-btn" id="btnSearch">
+                    <i class="layui-icon layui-icon-search"></i> 查询
+                </button>
+                <a class="layui-btn layui-btn-normal" href="javascript:;" id="btnCreate">
+                    <i class="layui-icon layui-icon-add-1"></i> 新建工单
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <table id="ticketTable" lay-filter="ticketTable"></table>
+
+    <!-- 操作列模板 -->
+    <script type="text/html" id="opTpl">
+        <a class="layui-btn layui-btn-xs" lay-event="detail">详情</a>
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="close">关闭</a>
+    </script>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['table', 'layer', 'form'], function () {
+    var table = layui.table;
+    var layer = layui.layer;
+    var form = layui.form;
+    var $ = layui.$;
+
+    // 首次渲染
+    table.render({
+        elem: '#ticketTable',
+        url: '/Ticket/ListJson',
+        method: 'get',
+        page: true,
+        limit: 10,
+        cols: [[
+            { field: 'Code', title: '工单号', width: 160 },
+            { field: 'Title', title: '标题', minWidth: 240 },
+            { field: 'Priority', title: '优先级', width: 100, templet: function(d){ return priorityText(d.Priority); } },
+            { field: 'Status', title: '状态', width: 120, templet: function(d){ return statusText(d.Status); } },
+            { field: 'CreatorName', title: '创建人', width: 120 },
+            { field: 'AssigneeName', title: '处理人', width: 120 },
+            { field: 'CreatedAt', title: '创建时间', width: 180, templet: function(d){ return formatTime(d.CreatedAt); } },
+            { fixed: 'right', title: '操作', toolbar: '#opTpl', width: 140 }
+        ]]
+    });
+
+    // 查询
+    $('#btnSearch').on('click', function () {
+        table.reload('ticketTable', {
+            page: { curr: 1 },
+            where: {
+                keyword: $('#keyword').val(),
+                status: $('#status').val(),
+                priority: $('#priority').val(),
+                categoryId: $('#categoryId').val()
+            }
+        });
+    });
+
+    // 新建（先跳转到 Create 页面，下一步我们做）
+    $('#btnCreate').on('click', function(){
+        if (window.parent && window.parent.openPage) {
+            window.parent.openPage('/Ticket/Create');
+        } else {
+            window.location.href = '/Ticket/Create';
+        }
+    });
+
+    // 操作事件
+    table.on('tool(ticketTable)', function (obj) {
+        var data = obj.data;
+        if (obj.event === 'detail') {
+            layer.open({
+                type: 2,
+                title: '工单详情 - ' + data.Code,
+                content: '/Ticket/Detail?id=' + data.Id,
+                area: ['900px', '600px']
+            });
+        }
+        if (obj.event === 'close') {
+            layer.msg('下一步实现关闭接口 Ticket/Close');
+        }
+    });
+
+    function statusText(v){
+        switch(v){
+            case 1: return '新建';
+            case 2: return '已受理';
+            case 3: return '处理中';
+            case 4: return '待确认';
+            case 5: return '已完成';
+            case 6: return '已关闭';
+            default: return v;
+        }
+    }
+
+    function priorityText(v){
+        switch(v){
+            case 1: return '低';
+            case 2: return '中';
+            case 3: return '高';
+            case 4: return '<span style="color:#FF5722;">紧急</span>';
+            default: return v;
+        }
+    }
+
+    function formatTime(v){
+        if(!v) return '';
+        // MVC5 JSON Date 可能是 "/Date(1700000000000)/"
+        if(typeof v === 'string' && v.indexOf('/Date(') === 0){
+            var ms = parseInt(v.replace('/Date(', '').replace(')/', ''));
+            var dt = new Date(ms);
+            return dt.getFullYear() + '-' + pad(dt.getMonth()+1) + '-' + pad(dt.getDate()) + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+        }
+        return v;
+    }
+    function pad(n){ return n < 10 ? '0' + n : n; }
+});
+</script>

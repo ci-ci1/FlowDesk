@@ -46,6 +46,73 @@
           <Property Name="UpdatedAt" Type="datetime2" Precision="0" Nullable="false" />
           <Property Name="IsDeleted" Type="bit" Nullable="false" />
         </EntityType>
+        <EntityType Name="TicketAttachments">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="TicketId" Type="bigint" Nullable="false" />
+          <Property Name="FileName" Type="nvarchar" MaxLength="200" Nullable="false" />
+          <Property Name="FilePath" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="FileSize" Type="bigint" />
+          <Property Name="ContentType" Type="nvarchar" MaxLength="100" />
+          <Property Name="UploadedBy" Type="bigint" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
+        </EntityType>
+        <EntityType Name="TicketCategories">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Name" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Sort" Type="int" Nullable="false" />
+          <Property Name="Status" Type="tinyint" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
+        </EntityType>
+        <EntityType Name="TicketComments">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="TicketId" Type="bigint" Nullable="false" />
+          <Property Name="UserId" Type="bigint" Nullable="false" />
+          <Property Name="Content" Type="nvarchar" MaxLength="1000" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
+        </EntityType>
+        <EntityType Name="TicketFlowLogs">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="TicketId" Type="bigint" Nullable="false" />
+          <Property Name="FromStatus" Type="tinyint" />
+          <Property Name="ToStatus" Type="tinyint" Nullable="false" />
+          <Property Name="Action" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="OperatorId" Type="bigint" Nullable="false" />
+          <Property Name="Remark" Type="nvarchar" MaxLength="500" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Tickets">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Code" Type="nvarchar" MaxLength="30" Nullable="false" />
+          <Property Name="Title" Type="nvarchar" MaxLength="200" Nullable="false" />
+          <Property Name="Description" Type="nvarchar(max)" />
+          <Property Name="CategoryId" Type="bigint" />
+          <Property Name="Priority" Type="tinyint" Nullable="false" />
+          <Property Name="Status" Type="tinyint" Nullable="false" />
+          <Property Name="CreatorId" Type="bigint" Nullable="false" />
+          <Property Name="AssigneeId" Type="bigint" />
+          <Property Name="ExpectedAt" Type="datetime2" Precision="0" />
+          <Property Name="AcceptedAt" Type="datetime2" Precision="0" />
+          <Property Name="ResolvedAt" Type="datetime2" Precision="0" />
+          <Property Name="ClosedAt" Type="datetime2" Precision="0" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="UpdatedAt" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="IsDeleted" Type="bit" Nullable="false" />
+        </EntityType>
         <EntityType Name="UserRoles">
           <Key>
             <PropertyRef Name="UserId" />
@@ -94,6 +161,78 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_TicketAttachments_Tickets">
+          <End Role="Tickets" Type="Self.Tickets" Multiplicity="1" />
+          <End Role="TicketAttachments" Type="Self.TicketAttachments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Tickets">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketAttachments">
+              <PropertyRef Name="TicketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketAttachments_Users">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="TicketAttachments" Type="Self.TicketAttachments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketAttachments">
+              <PropertyRef Name="UploadedBy" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketComments_Tickets">
+          <End Role="Tickets" Type="Self.Tickets" Multiplicity="1" />
+          <End Role="TicketComments" Type="Self.TicketComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Tickets">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketComments">
+              <PropertyRef Name="TicketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketComments_Users">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="TicketComments" Type="Self.TicketComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketComments">
+              <PropertyRef Name="UserId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketFlowLogs_Tickets">
+          <End Role="Tickets" Type="Self.Tickets" Multiplicity="1" />
+          <End Role="TicketFlowLogs" Type="Self.TicketFlowLogs" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Tickets">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketFlowLogs">
+              <PropertyRef Name="TicketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketFlowLogs_Users">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="TicketFlowLogs" Type="Self.TicketFlowLogs" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketFlowLogs">
+              <PropertyRef Name="OperatorId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_UserRoles_Roles">
           <End Role="Roles" Type="Self.Roles" Multiplicity="1" />
           <End Role="UserRoles" Type="Self.UserRoles" Multiplicity="*" />
@@ -122,6 +261,11 @@
           <EntitySet Name="Menus" EntityType="Self.Menus" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="RoleMenus" EntityType="Self.RoleMenus" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Roles" EntityType="Self.Roles" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="TicketAttachments" EntityType="Self.TicketAttachments" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="TicketCategories" EntityType="Self.TicketCategories" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="TicketComments" EntityType="Self.TicketComments" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="TicketFlowLogs" EntityType="Self.TicketFlowLogs" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Tickets" EntityType="Self.Tickets" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="UserRoles" EntityType="Self.UserRoles" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Users" EntityType="Self.Users" Schema="dbo" store:Type="Tables" />
           <AssociationSet Name="FK_RoleMenus_Menus" Association="Self.FK_RoleMenus_Menus">
@@ -131,6 +275,30 @@
           <AssociationSet Name="FK_RoleMenus_Roles" Association="Self.FK_RoleMenus_Roles">
             <End Role="Roles" EntitySet="Roles" />
             <End Role="RoleMenus" EntitySet="RoleMenus" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketAttachments_Tickets" Association="Self.FK_TicketAttachments_Tickets">
+            <End Role="Tickets" EntitySet="Tickets" />
+            <End Role="TicketAttachments" EntitySet="TicketAttachments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketAttachments_Users" Association="Self.FK_TicketAttachments_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="TicketAttachments" EntitySet="TicketAttachments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketComments_Tickets" Association="Self.FK_TicketComments_Tickets">
+            <End Role="Tickets" EntitySet="Tickets" />
+            <End Role="TicketComments" EntitySet="TicketComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketComments_Users" Association="Self.FK_TicketComments_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="TicketComments" EntitySet="TicketComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketFlowLogs_Tickets" Association="Self.FK_TicketFlowLogs_Tickets">
+            <End Role="Tickets" EntitySet="Tickets" />
+            <End Role="TicketFlowLogs" EntitySet="TicketFlowLogs" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketFlowLogs_Users" Association="Self.FK_TicketFlowLogs_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="TicketFlowLogs" EntitySet="TicketFlowLogs" />
           </AssociationSet>
           <AssociationSet Name="FK_UserRoles_Roles" Association="Self.FK_UserRoles_Roles">
             <End Role="Roles" EntitySet="Roles" />
@@ -167,6 +335,35 @@
             <End Role="Users" EntitySet="Users" />
             <End Role="UserRoles" EntitySet="UserRoles" />
           </AssociationSet>
+          <EntitySet Name="TicketAttachments" EntityType="FlowDeskModel.TicketAttachments" />
+          <EntitySet Name="TicketCategories" EntityType="FlowDeskModel.TicketCategories" />
+          <EntitySet Name="TicketComments" EntityType="FlowDeskModel.TicketComments" />
+          <EntitySet Name="TicketFlowLogs" EntityType="FlowDeskModel.TicketFlowLogs" />
+          <EntitySet Name="Tickets" EntityType="FlowDeskModel.Tickets" />
+          <AssociationSet Name="FK_TicketAttachments_Tickets" Association="FlowDeskModel.FK_TicketAttachments_Tickets">
+            <End Role="Tickets" EntitySet="Tickets" />
+            <End Role="TicketAttachments" EntitySet="TicketAttachments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketAttachments_Users" Association="FlowDeskModel.FK_TicketAttachments_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="TicketAttachments" EntitySet="TicketAttachments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketComments_Tickets" Association="FlowDeskModel.FK_TicketComments_Tickets">
+            <End Role="Tickets" EntitySet="Tickets" />
+            <End Role="TicketComments" EntitySet="TicketComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketComments_Users" Association="FlowDeskModel.FK_TicketComments_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="TicketComments" EntitySet="TicketComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketFlowLogs_Tickets" Association="FlowDeskModel.FK_TicketFlowLogs_Tickets">
+            <End Role="Tickets" EntitySet="Tickets" />
+            <End Role="TicketFlowLogs" EntitySet="TicketFlowLogs" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TicketFlowLogs_Users" Association="FlowDeskModel.FK_TicketFlowLogs_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="TicketFlowLogs" EntitySet="TicketFlowLogs" />
+          </AssociationSet>
         </EntityContainer>
         <EntityType Name="Users">
           <Key>
@@ -183,6 +380,9 @@
           <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
           <Property Name="UpdatedAt" Type="DateTime" Nullable="false" Precision="0" />
           <NavigationProperty Name="UserRoles" Relationship="FlowDeskModel.FK_UserRoles_Users" FromRole="Users" ToRole="UserRoles" />
+          <NavigationProperty Name="TicketAttachments" Relationship="FlowDeskModel.FK_TicketAttachments_Users" FromRole="Users" ToRole="TicketAttachments" />
+          <NavigationProperty Name="TicketComments" Relationship="FlowDeskModel.FK_TicketComments_Users" FromRole="Users" ToRole="TicketComments" />
+          <NavigationProperty Name="TicketFlowLogs" Relationship="FlowDeskModel.FK_TicketFlowLogs_Users" FromRole="Users" ToRole="TicketFlowLogs" />
         </EntityType>
         <EntityType Name="Menus">
           <Key>
@@ -289,6 +489,154 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="TicketAttachments">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="TicketId" Type="Int64" Nullable="false" />
+          <Property Name="FileName" Type="String" Nullable="false" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="FilePath" Type="String" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="FileSize" Type="Int64" />
+          <Property Name="ContentType" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="UploadedBy" Type="Int64" Nullable="false" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
+          <NavigationProperty Name="Tickets" Relationship="FlowDeskModel.FK_TicketAttachments_Tickets" FromRole="TicketAttachments" ToRole="Tickets" />
+          <NavigationProperty Name="Users" Relationship="FlowDeskModel.FK_TicketAttachments_Users" FromRole="TicketAttachments" ToRole="Users" />
+        </EntityType>
+        <EntityType Name="TicketCategories">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Name" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Sort" Type="Int32" Nullable="false" />
+          <Property Name="Status" Type="Byte" Nullable="false" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
+        </EntityType>
+        <EntityType Name="TicketComments">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="TicketId" Type="Int64" Nullable="false" />
+          <Property Name="UserId" Type="Int64" Nullable="false" />
+          <Property Name="Content" Type="String" Nullable="false" MaxLength="1000" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
+          <NavigationProperty Name="Tickets" Relationship="FlowDeskModel.FK_TicketComments_Tickets" FromRole="TicketComments" ToRole="Tickets" />
+          <NavigationProperty Name="Users" Relationship="FlowDeskModel.FK_TicketComments_Users" FromRole="TicketComments" ToRole="Users" />
+        </EntityType>
+        <EntityType Name="TicketFlowLogs">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="TicketId" Type="Int64" Nullable="false" />
+          <Property Name="FromStatus" Type="Byte" />
+          <Property Name="ToStatus" Type="Byte" Nullable="false" />
+          <Property Name="Action" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="OperatorId" Type="Int64" Nullable="false" />
+          <Property Name="Remark" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
+          <NavigationProperty Name="Tickets" Relationship="FlowDeskModel.FK_TicketFlowLogs_Tickets" FromRole="TicketFlowLogs" ToRole="Tickets" />
+          <NavigationProperty Name="Users" Relationship="FlowDeskModel.FK_TicketFlowLogs_Users" FromRole="TicketFlowLogs" ToRole="Users" />
+        </EntityType>
+        <EntityType Name="Tickets">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Code" Type="String" Nullable="false" MaxLength="30" FixedLength="false" Unicode="true" />
+          <Property Name="Title" Type="String" Nullable="false" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="Description" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="CategoryId" Type="Int64" />
+          <Property Name="Priority" Type="Byte" Nullable="false" />
+          <Property Name="Status" Type="Byte" Nullable="false" />
+          <Property Name="CreatorId" Type="Int64" Nullable="false" />
+          <Property Name="AssigneeId" Type="Int64" />
+          <Property Name="ExpectedAt" Type="DateTime" Precision="0" />
+          <Property Name="AcceptedAt" Type="DateTime" Precision="0" />
+          <Property Name="ResolvedAt" Type="DateTime" Precision="0" />
+          <Property Name="ClosedAt" Type="DateTime" Precision="0" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="UpdatedAt" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="IsDeleted" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="TicketAttachments" Relationship="FlowDeskModel.FK_TicketAttachments_Tickets" FromRole="Tickets" ToRole="TicketAttachments" />
+          <NavigationProperty Name="TicketComments" Relationship="FlowDeskModel.FK_TicketComments_Tickets" FromRole="Tickets" ToRole="TicketComments" />
+          <NavigationProperty Name="TicketFlowLogs" Relationship="FlowDeskModel.FK_TicketFlowLogs_Tickets" FromRole="Tickets" ToRole="TicketFlowLogs" />
+        </EntityType>
+        <Association Name="FK_TicketAttachments_Tickets">
+          <End Type="FlowDeskModel.Tickets" Role="Tickets" Multiplicity="1" />
+          <End Type="FlowDeskModel.TicketAttachments" Role="TicketAttachments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Tickets">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketAttachments">
+              <PropertyRef Name="TicketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketAttachments_Users">
+          <End Type="FlowDeskModel.Users" Role="Users" Multiplicity="1" />
+          <End Type="FlowDeskModel.TicketAttachments" Role="TicketAttachments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketAttachments">
+              <PropertyRef Name="UploadedBy" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketComments_Tickets">
+          <End Type="FlowDeskModel.Tickets" Role="Tickets" Multiplicity="1" />
+          <End Type="FlowDeskModel.TicketComments" Role="TicketComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Tickets">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketComments">
+              <PropertyRef Name="TicketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketComments_Users">
+          <End Type="FlowDeskModel.Users" Role="Users" Multiplicity="1" />
+          <End Type="FlowDeskModel.TicketComments" Role="TicketComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketComments">
+              <PropertyRef Name="UserId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketFlowLogs_Tickets">
+          <End Type="FlowDeskModel.Tickets" Role="Tickets" Multiplicity="1" />
+          <End Type="FlowDeskModel.TicketFlowLogs" Role="TicketFlowLogs" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Tickets">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketFlowLogs">
+              <PropertyRef Name="TicketId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TicketFlowLogs_Users">
+          <End Type="FlowDeskModel.Users" Role="Users" Multiplicity="1" />
+          <End Type="FlowDeskModel.TicketFlowLogs" Role="TicketFlowLogs" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="TicketFlowLogs">
+              <PropertyRef Name="OperatorId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -360,6 +708,78 @@
                 <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
                 <ScalarProperty Name="RoleId" ColumnName="RoleId" />
                 <ScalarProperty Name="UserId" ColumnName="UserId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="TicketAttachments">
+            <EntityTypeMapping TypeName="FlowDeskModel.TicketAttachments">
+              <MappingFragment StoreEntitySet="TicketAttachments">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="UploadedBy" ColumnName="UploadedBy" />
+                <ScalarProperty Name="ContentType" ColumnName="ContentType" />
+                <ScalarProperty Name="FileSize" ColumnName="FileSize" />
+                <ScalarProperty Name="FilePath" ColumnName="FilePath" />
+                <ScalarProperty Name="FileName" ColumnName="FileName" />
+                <ScalarProperty Name="TicketId" ColumnName="TicketId" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="TicketCategories">
+            <EntityTypeMapping TypeName="FlowDeskModel.TicketCategories">
+              <MappingFragment StoreEntitySet="TicketCategories">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="Sort" ColumnName="Sort" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="TicketComments">
+            <EntityTypeMapping TypeName="FlowDeskModel.TicketComments">
+              <MappingFragment StoreEntitySet="TicketComments">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="UserId" ColumnName="UserId" />
+                <ScalarProperty Name="TicketId" ColumnName="TicketId" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="TicketFlowLogs">
+            <EntityTypeMapping TypeName="FlowDeskModel.TicketFlowLogs">
+              <MappingFragment StoreEntitySet="TicketFlowLogs">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Remark" ColumnName="Remark" />
+                <ScalarProperty Name="OperatorId" ColumnName="OperatorId" />
+                <ScalarProperty Name="Action" ColumnName="Action" />
+                <ScalarProperty Name="ToStatus" ColumnName="ToStatus" />
+                <ScalarProperty Name="FromStatus" ColumnName="FromStatus" />
+                <ScalarProperty Name="TicketId" ColumnName="TicketId" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Tickets">
+            <EntityTypeMapping TypeName="FlowDeskModel.Tickets">
+              <MappingFragment StoreEntitySet="Tickets">
+                <ScalarProperty Name="IsDeleted" ColumnName="IsDeleted" />
+                <ScalarProperty Name="UpdatedAt" ColumnName="UpdatedAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="ClosedAt" ColumnName="ClosedAt" />
+                <ScalarProperty Name="ResolvedAt" ColumnName="ResolvedAt" />
+                <ScalarProperty Name="AcceptedAt" ColumnName="AcceptedAt" />
+                <ScalarProperty Name="ExpectedAt" ColumnName="ExpectedAt" />
+                <ScalarProperty Name="AssigneeId" ColumnName="AssigneeId" />
+                <ScalarProperty Name="CreatorId" ColumnName="CreatorId" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="Priority" ColumnName="Priority" />
+                <ScalarProperty Name="CategoryId" ColumnName="CategoryId" />
+                <ScalarProperty Name="Description" ColumnName="Description" />
+                <ScalarProperty Name="Title" ColumnName="Title" />
+                <ScalarProperty Name="Code" ColumnName="Code" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

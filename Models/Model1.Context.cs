@@ -30,5 +30,10 @@ namespace FlowDesk.Models
         public virtual DbSet<RoleMenus> RoleMenus { get; set; }
         public virtual DbSet<Roles> Roles { get; set; }
         public virtual DbSet<UserRoles> UserRoles { get; set; }
+        public virtual DbSet<TicketAttachments> TicketAttachments { get; set; }
+        public virtual DbSet<TicketCategories> TicketCategories { get; set; }
+        public virtual DbSet<TicketComments> TicketComments { get; set; }
+        public virtual DbSet<TicketFlowLogs> TicketFlowLogs { get; set; }
+        public virtual DbSet<Tickets> Tickets { get; set; }
     }
 }

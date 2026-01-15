@@ -4,7 +4,7 @@
   <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
     <!-- Diagram content (shape and connector positions) -->
     <edmx:Diagrams>
-      <Diagram DiagramId="29004f3e010145fc9100fe34d3d888a8" Name="Diagram1" ZoomLevel="109">
+      <Diagram DiagramId="29004f3e010145fc9100fe34d3d888a8" Name="Diagram1" ZoomLevel="72">
         <EntityTypeShape EntityType="FlowDeskModel.Users" Width="1.5" PointX="0.75" PointY="0.75" />
         <EntityTypeShape EntityType="FlowDeskModel.Menus" Width="1.5" PointX="2.625" PointY="0.75" />
         <EntityTypeShape EntityType="FlowDeskModel.RoleMenus" Width="1.5" PointX="7.625" PointY="1.75" />
@@ -14,6 +14,17 @@
         <AssociationConnector Association="FlowDeskModel.FK_RoleMenus_Roles" />
         <AssociationConnector Association="FlowDeskModel.FK_UserRoles_Roles" />
         <AssociationConnector Association="FlowDeskModel.FK_UserRoles_Users" />
+        <EntityTypeShape EntityType="FlowDeskModel.TicketAttachments" Width="1.5" PointX="3.375" PointY="9.625" />
+        <EntityTypeShape EntityType="FlowDeskModel.TicketCategories" Width="1.5" PointX="0.75" PointY="5.75" />
+        <EntityTypeShape EntityType="FlowDeskModel.TicketComments" Width="1.5" PointX="6.375" PointY="7.875" />
+        <EntityTypeShape EntityType="FlowDeskModel.TicketFlowLogs" Width="1.5" PointX="3.375" PointY="5.625" />
+        <EntityTypeShape EntityType="FlowDeskModel.Tickets" Width="1.5" PointX="0.75" PointY="8.75" />
+        <AssociationConnector Association="FlowDeskModel.FK_TicketAttachments_Tickets" />
+        <AssociationConnector Association="FlowDeskModel.FK_TicketAttachments_Users" />
+        <AssociationConnector Association="FlowDeskModel.FK_TicketComments_Tickets" />
+        <AssociationConnector Association="FlowDeskModel.FK_TicketComments_Users" />
+        <AssociationConnector Association="FlowDeskModel.FK_TicketFlowLogs_Tickets" />
+        <AssociationConnector Association="FlowDeskModel.FK_TicketFlowLogs_Users" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

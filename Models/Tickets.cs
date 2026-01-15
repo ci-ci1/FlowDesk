@@ -12,30 +12,33 @@ namespace FlowDesk.Models
     using System;
     using System.Collections.Generic;
     
-    public partial class Users
+    public partial class Tickets
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
-        public Users()
+        public Tickets()
         {
-            this.UserRoles = new HashSet<UserRoles>();
             this.TicketAttachments = new HashSet<TicketAttachments>();
             this.TicketComments = new HashSet<TicketComments>();
             this.TicketFlowLogs = new HashSet<TicketFlowLogs>();
         }
     
         public long Id { get; set; }
-        public string UserName { get; set; }
-        public string Password { get; set; }
-        public string RealName { get; set; }
-        public string Email { get; set; }
-        public string Phone { get; set; }
+        public string Code { get; set; }
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public Nullable<long> CategoryId { get; set; }
+        public byte Priority { get; set; }
         public byte Status { get; set; }
-        public Nullable<System.DateTime> LastLoginAt { get; set; }
+        public long CreatorId { get; set; }
+        public Nullable<long> AssigneeId { get; set; }
+        public Nullable<System.DateTime> ExpectedAt { get; set; }
+        public Nullable<System.DateTime> AcceptedAt { get; set; }
+        public Nullable<System.DateTime> ResolvedAt { get; set; }
+        public Nullable<System.DateTime> ClosedAt { get; set; }
         public System.DateTime CreatedAt { get; set; }
         public System.DateTime UpdatedAt { get; set; }
+        public bool IsDeleted { get; set; }
     
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<UserRoles> UserRoles { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<TicketAttachments> TicketAttachments { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]

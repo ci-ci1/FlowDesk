@@ -1,0 +1,168 @@
+﻿@{
+    ViewBag.Title = "工单报表";
+    Layout = null; // iframe 页面
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">
+        工单报表
+    </blockquote>
+
+    <div class="layui-card" style="padding: 10px;">
+        <div class="layui-form">
+            <div class="layui-inline">
+                <label class="layui-form-label">时间范围</label>
+                <div class="layui-input-inline" style="width:160px;">
+                    <select id="days">
+                        <option value="7" selected>近 7 天</option>
+                        <option value="30">近 30 天</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="layui-inline">
+                <button class="layui-btn" id="btnReload">
+                    <i class="layui-icon layui-icon-refresh"></i> 刷新
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-row layui-col-space15" style="margin-top:10px;">
+        <div class="layui-col-md4">
+            <div class="layui-card">
+                <div class="layui-card-header">状态分布</div>
+                <div class="layui-card-body">
+                    <div id="chartStatus" style="height:320px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-col-md8">
+            <div class="layui-card">
+                <div class="layui-card-header">新增趋势</div>
+                <div class="layui-card-body">
+                    <div id="chartTrend" style="height:320px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-header">分类 TOP10</div>
+                <div class="layui-card-body">
+                    <div id="chartCat" style="height:360px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<!-- ECharts CDN（你也可以下载到本地） -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+<script>
+layui.use(['form', 'layer'], function () {
+    var form = layui.form;
+    var layer = layui.layer;
+    var $ = layui.$;
+
+    form.render();
+
+    var chartStatus = echarts.init(document.getElementById('chartStatus'));
+    var chartTrend  = echarts.init(document.getElementById('chartTrend'));
+    var chartCat    = echarts.init(document.getElementById('chartCat'));
+
+    function statusName(v){
+        switch(v){
+            case 1: return '新建';
+            case 2: return '已受理';
+            case 3: return '处理中';
+            case 4: return '待确认';
+            case 5: return '已完成';
+            case 6: return '已关闭';
+            default: return '状态' + v;
+        }
+    }
+
+    function loadData(){
+        var days = $('#days').val();
+
+        $.get('/Ticket/ReportData', { days: days }, function(res){
+            if(res.code !== 0){
+                layer.msg(res.msg || '加载失败', {icon:5});
+                return;
+            }
+
+            // 1) 状态分布
+            var byStatus = res.data.byStatus || [];
+            var pieData = byStatus.map(function(x){
+                return { name: statusName(x.Status), value: x.Cnt };
+            });
+
+            chartStatus.setOption({
+                tooltip: { trigger: 'item' },
+                legend: { bottom: 0 },
+                series: [{
+                    type: 'pie',
+                    radius: '70%',
+                    data: pieData
+                }]
+            });
+
+            // 2) 趋势
+            var trend = res.data.trend || [];
+            var xAxis = trend.map(x => x.Day);
+            var yAxis = trend.map(x => x.Cnt);
+
+            chartTrend.setOption({
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: xAxis },
+                yAxis: { type: 'value' },
+                series: [{
+                    name: '新增工单',
+                    type: 'line',
+                    smooth: true,
+                    data: yAxis
+                }]
+            });
+
+            // 3) 分类 TOP10
+            var catTop = res.data.catTop || [];
+            var catNames = catTop.map(x => x.Name).reverse();
+            var catCnts  = catTop.map(x => x.Cnt).reverse();
+
+            chartCat.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 80, right: 20, top: 20, bottom: 20 },
+                xAxis: { type: 'value' },
+                yAxis: { type: 'category', data: catNames },
+                series: [{
+                    name: '工单数',
+                    type: 'bar',
+                    data: catCnts
+                }]
+            });
+        });
+    }
+
+    $('#btnReload').on('click', function(){
+        loadData();
+    });
+
+    // 首次加载
+    loadData();
+
+    // iframe 内自适应：窗口大小变化重绘
+    window.onresize = function(){
+        chartStatus.resize();
+        chartTrend.resize();
+        chartCat.resize();
+    };
+});
+</script>

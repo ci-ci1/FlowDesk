@@ -1,0 +1,125 @@
+﻿@using FlowDesk.Models
+@{
+    ViewBag.Title = "新建工单";
+    Layout = null; // iframe 页面
+    var categories = ViewBag.Categories as System.Collections.Generic.List<TicketCategories>;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">
+        新建工单
+    </blockquote>
+
+    <form class="layui-form" id="ticketForm" style="max-width:900px;">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">标题</label>
+            <div class="layui-input-block">
+                <input type="text" name="title" required lay-verify="required" placeholder="请输入工单标题" autocomplete="off" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">分类</label>
+            <div class="layui-input-block">
+                <select name="categoryId">
+                    <option value="">请选择</option>
+                    @if (categories != null)
+                    {
+                        foreach (var c in categories)
+                        {
+                            <option value="@c.Id">@c.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">优先级</label>
+            <div class="layui-input-block">
+                <select name="priority">
+                    <option value="1">低</option>
+                    <option value="2" selected>中</option>
+                    <option value="3">高</option>
+                    <option value="4">紧急</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">期望完成</label>
+            <div class="layui-input-block">
+                <input type="text" name="expectedAt" id="expectedAt" placeholder="选择时间（可选）" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">描述</label>
+            <div class="layui-input-block">
+                <textarea name="description" placeholder="请描述问题现象、影响范围、复现方式等" class="layui-textarea" style="min-height:160px;"></textarea>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="submitTicket">
+                    <i class="layui-icon layui-icon-ok"></i> 提交
+                </button>
+                <a class="layui-btn layui-btn-primary" href="javascript:;" onclick="BackToList()">返回</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['form', 'layer', 'laydate'], function () {
+    var form = layui.form;
+    var layer = layui.layer;
+    var laydate = layui.laydate;
+    var $ = layui.$;
+
+    laydate.render({
+        elem: '#expectedAt',
+        type: 'datetime'
+    });
+
+    form.on('submit(submitTicket)', function (data) {
+        $.ajax({
+            url: '/Ticket/CreatePost',
+            type: 'post',
+            data: data.field,
+            success: function (res) {
+                if (res.code === 0) {
+                    layer.msg('创建成功：' + (res.data ? res.data.code : ''), { icon: 1, time: 1000 }, function () {
+                        if (window.parent && window.parent.openPage) {
+                            window.parent.openPage('/Ticket/Index');
+                        } else {
+                            window.location.href = '/Ticket/Index';
+                        }
+                    });
+                } else {
+                    layer.msg(res.msg || '创建失败', { icon: 5 });
+                }
+            },
+            error: function () {
+                layer.msg('网络错误', { icon: 5 });
+            }
+        });
+        return false; // 阻止表单跳转
+    });
+});
+
+    function BackToList() {
+        if (window.parent && window.parent.openPage) {
+            window.parent.openPage('/Ticket/Index');
+        } else {
+            window.location.href = '/Ticket/Index';
+        }
+    }
+</script>

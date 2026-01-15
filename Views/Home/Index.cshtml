@@ -106,6 +106,142 @@
 </div>
 
 <script>
+    // 全局缓存（保证在函数里可用）
+    var element, layer, util, $;
+
+    layui.use(['element', 'layer', 'util'], function () {
+        element = layui.element;
+        layer = layui.layer;
+        util = layui.util;
+        $ = layui.$;
+
+        // 渲染导航
+        element.render('nav', 'leftMenu');
+
+        // 头部事件
+        util.event('lay-header-event', {
+            menuLeft: function () {
+                layer.msg('展开左侧菜单的操作', { icon: 0 });
+            },
+            menuRight: function () {
+                layer.open({
+                    type: 1,
+                    title: '更多',
+                    content: '<div style="padding: 15px;">处理右侧面板的操作</div>',
+                    area: ['260px', '100%'],
+                    offset: 'rt',
+                    anim: 'slideLeft',
+                    shadeClose: true,
+                    scrollbar: false
+                });
+            }
+        });
+
+        // 点击菜单 -> 统一走 openPage（自动高亮）
+        $(document).on('click', '.menu-link', function () {
+            var url = $(this).data('url');
+            openPage(url);
+        });
+
+        // 进入首页时：恢复上次打开页面（没有则保持你 iframe 默认 src）
+        var last = localStorage.getItem('FLOWDESK_LAST_URL');
+        if (last) {
+            openPage(last);
+        } else {
+            // 如果你希望固定默认页，可打开这一行：
+            // openPage('/Home/Welcome');
+        }
+    });
+
+    // 设置左侧菜单选中
+    function setActiveMenu(url) {
+        if (!url) return;
+
+        // 清理之前状态
+        $('#leftMenu a').removeClass('layui-this');
+        $('#leftMenu dd').removeClass('layui-this');
+        $('#leftMenu li').removeClass('layui-nav-itemed');
+
+        // 找到对应链接
+        var $a = $('#leftMenu a.menu-link[data-url="' + url + '"]');
+        if ($a.length === 0) return;
+
+        // 设置选中 + 展开父级
+        $a.addClass('layui-this');
+        $a.closest('dd').addClass('layui-this');
+        $a.closest('li.layui-nav-item').addClass('layui-nav-itemed');
+
+        // 重新渲染 nav
+        if (element) element.render('nav', 'leftMenu');
+    }
+
+    // 打开页面并高亮菜单（给 iframe 页面调用：window.parent.openPage(url)）
+    function openPage(url) {
+        if (!url) return;
+        $('#mainFrame').attr('src', url);
+        setActiveMenu(url);
+        localStorage.setItem('FLOWDESK_LAST_URL', url);
+    }
+
+    // 退出登录
+    function SignOut() {
+        // 注意：这里用全局 layer/$（已在 layui.use 中初始化）
+        layui.layer.confirm('确定要退出登录吗？', { icon: 3, title: '退出确认' }, function (index) {
+            layui.layer.close(index);
+
+            $.ajax({
+                url: "/Home/SignOut",
+                type: "post",
+                success: function (res) {
+                    if (res.code == 0) {
+                        layui.layer.msg('退出成功', { icon: 1, time: 800 }, function () {
+                            window.location.href = "/Login/LoginIndex";
+                        });
+                    } else {
+                        layui.layer.msg(res.msg || res.message || '退出失败', { icon: 5 });
+                    }
+                },
+                error: function () {
+                    layui.layer.msg('网络错误，退出失败', { icon: 5 });
+                }
+            });
+        });
+    }
+
+    // 展示个人信息
+    function GetPersonalInformation() {
+        layui.use(['layer'], function () {
+            layui.layer.open({
+                type: 2,
+                area: ['520px', '480px'],
+                title: '个人信息',
+                shade: 0.6,
+                shadeClose: true,
+                maxmin: true,
+                anim: 0,
+                content: '/Home/ViewPersonalInfo'
+            });
+        });
+    }
+
+    // 密码管理
+    function ChangePassword() {
+        layui.use(['layer'], function () {
+            layui.layer.open({
+                type: 2,
+                area: ['520px', '480px'],
+                title: '密码管理',
+                shade: 0.6,
+                shadeClose: true,
+                maxmin: true,
+                anim: 0,
+                content: '/Home/ChangePasswordView'
+            });
+        });
+    }
+</script>
+
+@*<script>
     layui.use(['element', 'layer', 'util'], function () {
         var element = layui.element;
         var layer = layui.layer;
@@ -172,7 +308,7 @@
         layer.open({
             type: 2, // page 层类型
             area: ['520px', '480px'],
-            title:'个人信息',
+            title: '个人信息',
             shade: 0.6, // 遮罩透明度
             shadeClose: true, // 点击遮罩区域，关闭弹层
             maxmin: true, // 允许全屏最小化
@@ -194,4 +330,37 @@
             content: '/Home/ChangePasswordView'
         });
     }
-</script>
+
+    // 设置左侧菜单选中
+    function setActiveMenu(url) {
+        if (!url) return;
+
+        // 1) 清理之前的选中样式
+        $('#leftMenu a').removeClass('layui-this');
+        $('#leftMenu dd').removeClass('layui-this');
+        $('#leftMenu li').removeClass('layui-nav-itemed');
+
+        // 2) 找到匹配 data-url 的菜单 a
+        var $a = $('#leftMenu a.menu-link[data-url="' + url + '"]');
+        if ($a.length === 0) return;
+
+        // 3) Layui 的选中一般是：dd/this 以及父级 li 展开
+        $a.addClass('layui-this');
+        $a.closest('dd').addClass('layui-this');
+        $a.closest('li.layui-nav-item').addClass('layui-nav-itemed');
+
+        // 4) 重新渲染 nav（让样式生效更稳定）
+        layui.use(['element'], function () {
+            layui.element.render('nav', 'leftMenu');
+        });
+    }
+    // 打开页面并设置菜单选中
+    function openPage(url) {
+        if (!url) return;
+        $('#mainFrame').attr('src', url);
+        setActiveMenu(url);
+
+        // 记住最后打开的页面（刷新也能恢复）
+        localStorage.setItem('FLOWDESK_LAST_URL', url);
+    }
+</script>*@
