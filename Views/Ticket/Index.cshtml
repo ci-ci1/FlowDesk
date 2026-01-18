@@ -1,7 +1,7 @@
 ﻿@using FlowDesk.Models
 @{
     ViewBag.Title = "工单列表";
-    Layout = null;  // 因为你主框架用 iframe 加载页面，避免重复 Layout
+    Layout = null;
     var categories = ViewBag.Categories as System.Collections.Generic.List<TicketCategories>;
 }
 
@@ -12,7 +12,6 @@
         工单列表
     </blockquote>
 
-    <!-- 搜索栏 -->
     <div class="layui-form layui-card" style="padding:15px;">
         <div class="layui-row layui-col-space12">
 
@@ -21,7 +20,7 @@
             </div>
 
             <div class="layui-col-md2">
-                <select id="status" class="layui-select">
+                <select id="status">
                     <option value="">状态(全部)</option>
                     <option value="1">新建</option>
                     <option value="2">已受理</option>
@@ -33,7 +32,7 @@
             </div>
 
             <div class="layui-col-md2">
-                <select id="priority" class="layui-select">
+                <select id="priority">
                     <option value="">优先级(全部)</option>
                     <option value="1">低</option>
                     <option value="2">中</option>
@@ -43,7 +42,7 @@
             </div>
 
             <div class="layui-col-md2">
-                <select id="categoryId" class="layui-select">
+                <select id="categoryId">
                     <option value="">分类(全部)</option>
                     @if (categories != null)
                     {
@@ -56,6 +55,12 @@
             </div>
 
             <div class="layui-col-md3" style="text-align:right;">
+                <div class="layui-btn-group" style="margin-right:8px;">
+                    <button class="layui-btn layui-btn-primary layui-btn-sm" id="btnAll">全部</button>
+                    <button class="layui-btn layui-btn-primary layui-btn-sm" id="btnMyCreated">我创建的</button>
+                    <button class="layui-btn layui-btn-primary layui-btn-sm" id="btnMyTodo">待我处理</button>
+                </div>
+
                 <button class="layui-btn" id="btnSearch">
                     <i class="layui-icon layui-icon-search"></i> 查询
                 </button>
@@ -64,11 +69,32 @@
                 </a>
             </div>
         </div>
+
+        <div class="layui-row layui-col-space12" style="margin-top:10px;">
+            <div class="layui-col-md3">
+                <select id="creatorId">
+                    <option value="">创建人(全部)</option>
+                </select>
+            </div>
+
+            <div class="layui-col-md3">
+                <select id="assigneeId">
+                    <option value="">处理人(全部)</option>
+                </select>
+            </div>
+
+            <div class="layui-col-md3">
+                <input type="text" id="createdFrom" placeholder="创建时间-开始" class="layui-input" />
+            </div>
+
+            <div class="layui-col-md3">
+                <input type="text" id="createdTo" placeholder="创建时间-结束" class="layui-input" />
+            </div>
+        </div>
     </div>
 
     <table id="ticketTable" lay-filter="ticketTable"></table>
 
-    <!-- 操作列模板 -->
     <script type="text/html" id="opTpl">
         <a class="layui-btn layui-btn-xs" lay-event="detail">详情</a>
         <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="close">关闭</a>
@@ -79,101 +105,185 @@
 <script src="~/Content/layui/layui.js"></script>
 
 <script>
-layui.use(['table', 'layer', 'form'], function () {
-    var table = layui.table;
-    var layer = layui.layer;
-    var form = layui.form;
-    var $ = layui.$;
+    layui.use(['table', 'layer', 'form', 'laydate'], function () {
+        var table = layui.table;
+        var layer = layui.layer;
+        var form = layui.form;
+        var laydate = layui.laydate;
+        var $ = layui.$;
 
-    // 首次渲染
-    table.render({
-        elem: '#ticketTable',
-        url: '/Ticket/ListJson',
-        method: 'get',
-        page: true,
-        limit: 10,
-        cols: [[
-            { field: 'Code', title: '工单号', width: 160 },
-            { field: 'Title', title: '标题', minWidth: 240 },
-            { field: 'Priority', title: '优先级', width: 100, templet: function(d){ return priorityText(d.Priority); } },
-            { field: 'Status', title: '状态', width: 120, templet: function(d){ return statusText(d.Status); } },
-            { field: 'CreatorName', title: '创建人', width: 120 },
-            { field: 'AssigneeName', title: '处理人', width: 120 },
-            { field: 'CreatedAt', title: '创建时间', width: 180, templet: function(d){ return formatTime(d.CreatedAt); } },
-            { fixed: 'right', title: '操作', toolbar: '#opTpl', width: 140 }
-        ]]
-    });
+        // 日期选择
+        laydate.render({ elem: '#createdFrom', type: 'datetime' });
+        laydate.render({ elem: '#createdTo', type: 'datetime' });
 
-    // 查询
-    $('#btnSearch').on('click', function () {
-        table.reload('ticketTable', {
-            page: { curr: 1 },
-            where: {
+        // 加载用户下拉
+        function loadUserOptions() {
+            $.get('/Ticket/UserSelectOptions', function (res) {
+                if (res.code !== 0) {
+                    layer.msg(res.msg || '加载用户失败', { icon: 5 });
+                    return;
+                }
+
+                var list = res.data || [];
+
+                var html1 = '<option value="">创建人(全部)</option>';
+                list.forEach(function (u) { html1 += '<option value="' + u.Id + '">' + u.Name + '</option>'; });
+                $('#creatorId').html(html1);
+
+                var html2 = '<option value="">处理人(全部)</option>';
+                html2 += '<option value="0">未指派</option>';
+                list.forEach(function (u) { html2 += '<option value="' + u.Id + '">' + u.Name + '</option>'; });
+                $('#assigneeId').html(html2);
+
+                form.render('select');
+            });
+        }
+        loadUserOptions();
+
+        // 统一构建 where
+        function buildWhere(quick) {
+            return {
                 keyword: $('#keyword').val(),
                 status: $('#status').val(),
                 priority: $('#priority').val(),
-                categoryId: $('#categoryId').val()
+                categoryId: $('#categoryId').val(),
+                creatorId: $('#creatorId').val(),
+                assigneeId: $('#assigneeId').val(),
+                createdFrom: $('#createdFrom').val(),
+                createdTo: $('#createdTo').val(),
+                quick: quick
+            };
+        }
+
+        // 表格渲染
+        table.render({
+            elem: '#ticketTable',
+            id: 'ticketTable',
+            url: '/Ticket/ListJson',
+            method: 'get',
+            page: true,
+            limit: 10,
+            cols: [[
+                { field: 'Code', title: '工单号', width: 160 },
+                { field: 'Title', title: '标题', minWidth: 240 },
+                { field: 'Priority', title: '优先级', width: 100, templet: function (d) { return priorityText(d.Priority); } },
+                { field: 'Status', title: '状态', width: 120, templet: function (d) { return statusText(d.Status); } },
+                { field: 'CreatorName', title: '创建人', width: 120 },
+                { field: 'AssigneeName', title: '处理人', width: 120 },
+                { field: 'CreatedAt', title: '创建时间', width: 180, templet: function (d) { return formatTime(d.CreatedAt); } },
+                { fixed: 'right', title: '操作', toolbar: '#opTpl', width: 140 }
+            ]]
+        });
+
+        // 查询
+        $('#btnSearch').on('click', function () {
+            table.reload('ticketTable', {
+                page: { curr: 1 },
+                where: buildWhere(null)
+            });
+        });
+
+        // 快捷：全部
+        $('#btnAll').on('click', function () {
+            $('#creatorId').val('');
+            $('#assigneeId').val('');
+            $('#status').val('');
+            form.render('select');
+
+            table.reload('ticketTable', {
+                page: { curr: 1 },
+                where: buildWhere(null)
+            });
+        });
+
+        // 快捷：我创建的
+        $('#btnMyCreated').on('click', function () {
+            table.reload('ticketTable', {
+                page: { curr: 1 },
+                where: buildWhere('myCreated')
+            });
+        });
+
+        // 快捷：待我处理
+        $('#btnMyTodo').on('click', function () {
+            table.reload('ticketTable', {
+                page: { curr: 1 },
+                where: buildWhere('myTodo')
+            });
+        });
+
+        // 新建：走父窗口 openPage（保证左侧高亮切换）
+        $('#btnCreate').on('click', function () {
+            if (window.parent && window.parent.openPage) {
+                window.parent.openPage('/Ticket/Create');
+            } else {
+                window.location.href = '/Ticket/Create';
             }
         });
+
+        // 操作
+        table.on('tool(ticketTable)', function (obj) {
+            var data = obj.data;
+
+            if (obj.event === 'detail') {
+                layer.open({
+                    type: 2,
+                    title: '工单详情 - ' + data.Code,
+                    content: '/Ticket/Detail?id=' + data.Id,
+                    area: ['1000px', '650px'],
+                    end: function () {
+                        table.reload('ticketTable');
+                    }
+                });
+            }
+
+            if (obj.event === 'close') {
+                layer.confirm('确定关闭该工单吗？', { icon: 3, title: '关闭确认' }, function (i) {
+                    layer.close(i);
+                    $.post('/Ticket/Close', { ticketId: data.Id, remark: '列表页关闭' }, function (res) {
+                        if (res.code === 0) {
+                            layer.msg('已关闭', { icon: 1, time: 800 }, function () {
+                                table.reload('ticketTable');
+                            });
+                        } else {
+                            layer.msg(res.msg || '关闭失败', { icon: 5 });
+                        }
+                    });
+                });
+            }
+        });
+
+        function statusText(v) {
+            switch (v) {
+                case 1: return '新建';
+                case 2: return '已受理';
+                case 3: return '处理中';
+                case 4: return '待确认';
+                case 5: return '已完成';
+                case 6: return '已关闭';
+                default: return v;
+            }
+        }
+
+        function priorityText(v) {
+            switch (v) {
+                case 1: return '低';
+                case 2: return '中';
+                case 3: return '高';
+                case 4: return '<span style="color:#FF5722;">紧急</span>';
+                default: return v;
+            }
+        }
+
+        function formatTime(v) {
+            if (!v) return '';
+            if (typeof v === 'string' && v.indexOf('/Date(') === 0) {
+                var ms = parseInt(v.replace('/Date(', '').replace(')/', ''));
+                var dt = new Date(ms);
+                return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate()) + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+            }
+            return v;
+        }
+        function pad(n) { return n < 10 ? '0' + n : n; }
     });
-
-    // 新建（先跳转到 Create 页面，下一步我们做）
-    $('#btnCreate').on('click', function(){
-        if (window.parent && window.parent.openPage) {
-            window.parent.openPage('/Ticket/Create');
-        } else {
-            window.location.href = '/Ticket/Create';
-        }
-    });
-
-    // 操作事件
-    table.on('tool(ticketTable)', function (obj) {
-        var data = obj.data;
-        if (obj.event === 'detail') {
-            layer.open({
-                type: 2,
-                title: '工单详情 - ' + data.Code,
-                content: '/Ticket/Detail?id=' + data.Id,
-                area: ['900px', '600px']
-            });
-        }
-        if (obj.event === 'close') {
-            layer.msg('下一步实现关闭接口 Ticket/Close');
-        }
-    });
-
-    function statusText(v){
-        switch(v){
-            case 1: return '新建';
-            case 2: return '已受理';
-            case 3: return '处理中';
-            case 4: return '待确认';
-            case 5: return '已完成';
-            case 6: return '已关闭';
-            default: return v;
-        }
-    }
-
-    function priorityText(v){
-        switch(v){
-            case 1: return '低';
-            case 2: return '中';
-            case 3: return '高';
-            case 4: return '<span style="color:#FF5722;">紧急</span>';
-            default: return v;
-        }
-    }
-
-    function formatTime(v){
-        if(!v) return '';
-        // MVC5 JSON Date 可能是 "/Date(1700000000000)/"
-        if(typeof v === 'string' && v.indexOf('/Date(') === 0){
-            var ms = parseInt(v.replace('/Date(', '').replace(')/', ''));
-            var dt = new Date(ms);
-            return dt.getFullYear() + '-' + pad(dt.getMonth()+1) + '-' + pad(dt.getDate()) + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
-        }
-        return v;
-    }
-    function pad(n){ return n < 10 ? '0' + n : n; }
-});
 </script>

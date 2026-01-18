@@ -98,6 +98,7 @@
   <ItemGroup>
     <Content Include="Content\layui\css\layui.css" />
     <Content Include="Content\layui\font\iconfont.svg" />
+    <Content Include="Content\layui\JS\ECharts.js" />
     <Content Include="Content\layui\layui.js" />
     <Content Include="Content\Site.css" />
     <Content Include="Global.asax" />
@@ -193,7 +194,9 @@
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\ViewModels\MenuNode.cs" />
+    <Compile Include="Models\ViewModels\TicketCommentVM.cs" />
     <Compile Include="Models\ViewModels\TicketDetailVM.cs" />
+    <Compile Include="Models\ViewModels\TicketFlowLogVM.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -206,7 +209,6 @@
     <Content Include="Scripts\jquery-3.4.1.min.map" />
     <Content Include="Scripts\jquery-3.4.1.slim.min.map" />
     <Content Include="Views\Login\Register.cshtml" />
-    <Content Include="Views\Home\Welcome.cshtml" />
     <Content Include="Views\Home\ViewPersonalInfo.cshtml" />
     <Content Include="Views\Home\ChangePasswordView.cshtml" />
     <Content Include="Views\Ticket\Index.cshtml" />
@@ -214,6 +216,7 @@
     <Content Include="Views\Ticket\Report.cshtml" />
     <Content Include="Views\Login\View.cshtml" />
     <Content Include="Views\Ticket\Detail.cshtml" />
+    <Content Include="Views\Home\Dashboard.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -223,6 +226,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Uploads\Tickets\" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />

@@ -40,12 +40,6 @@ namespace FlowDesk.Controllers
         #endregion
 
         // GET: Home
-        #region 欢迎页
-        public ActionResult Welcome()
-        {
-            return View();
-        }
-        #endregion
 
         #region 首页视图
         public ActionResult Index()
@@ -187,5 +181,68 @@ namespace FlowDesk.Controllers
             }
         }
         #endregion
+
+        public ActionResult Dashboard()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public ActionResult DashboardData()
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" }, JsonRequestBehavior.AllowGet);
+
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
+            var now = DateTime.Now;
+
+            // 数据权限：admin 全部；非 admin 只看我创建或指派给我的
+            bool isAdmin = false;
+            // 如果你 HomeController 里没有 IsAdmin 方法，最简单做法：
+            isAdmin = (from ur in db.UserRoles
+                       join r in db.Roles on ur.RoleId equals r.Id
+                       where ur.UserId == me.Id && r.Code == "admin" && r.IsDeleted == false && r.Status == 1
+                       select r.Id).Any();
+
+            var q = db.Tickets.Where(t => t.IsDeleted == false);
+            if (!isAdmin)
+            {
+                long myId = me.Id;
+                q = q.Where(t => t.CreatorId == myId || t.AssigneeId == myId);
+            }
+
+            // 今日新增
+            var todayNew = q.Count(t => t.CreatedAt >= today && t.CreatedAt < tomorrow);
+
+            // 待处理：新建/已受理/处理中
+            var todo = q.Count(t => t.Status == 1 || t.Status == 2 || t.Status == 3);
+
+            // 我创建的（对 admin 也显示）
+            long meId = me.Id;
+            var myCreated = db.Tickets.Count(t => t.IsDeleted == false && t.CreatorId == meId);
+
+            // 我负责的（指派给我）
+            var myAssigned = db.Tickets.Count(t => t.IsDeleted == false && t.AssigneeId == meId);
+
+            // 超时（ExpectedAt < now 且未完成/未关闭）
+            var overtime = q.Count(t => t.ExpectedAt != null
+                                        && t.ExpectedAt < now
+                                        && t.Status != 5
+                                        && t.Status != 6);
+
+            return Json(new
+            {
+                code = 0,
+                data = new
+                {
+                    todayNew,
+                    todo,
+                    myCreated,
+                    myAssigned,
+                    overtime
+                }
+            }, JsonRequestBehavior.AllowGet);
+        }
     }
 }

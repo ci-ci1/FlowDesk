@@ -1,0 +1,102 @@
+﻿@{
+    ViewBag.Title = "Dashboard";
+    Layout = null; // iframe 页面
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">
+        Dashboard / 仪表盘
+    </blockquote>
+
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">今日新增工单</div>
+                <div class="layui-card-body">
+                    <div style="font-size:30px;" id="todayNew">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">待处理工单</div>
+                <div class="layui-card-body">
+                    <div style="font-size:30px;" id="todo">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">我创建的</div>
+                <div class="layui-card-body">
+                    <div style="font-size:30px;" id="myCreated">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">我负责的</div>
+                <div class="layui-card-body">
+                    <div style="font-size:30px;" id="myAssigned">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">超时工单</div>
+                <div class="layui-card-body">
+                    <div style="font-size:30px;color:#FF5722;" id="overtime">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-col-md9">
+            <div class="layui-card">
+                <div class="layui-card-header">快捷入口</div>
+                <div class="layui-card-body">
+                    <button class="layui-btn" onclick="go('/Ticket/Index')">进入工单列表</button>
+                    <button class="layui-btn layui-btn-normal" onclick="go('/Ticket/Create')">新建工单</button>
+                    <button class="layui-btn layui-btn-primary" onclick="go('/Ticket/Report')">查看报表</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['layer'], function () {
+    loadData();
+});
+
+function loadData(){
+    $.get('/Home/DashboardData', function(res){
+        if(res.code !== 0){
+            layui.layer.msg(res.msg || '加载失败', {icon:5});
+            return;
+        }
+        var d = res.data || {};
+        $('#todayNew').text(d.todayNew ?? '-');
+        $('#todo').text(d.todo ?? '-');
+        $('#myCreated').text(d.myCreated ?? '-');
+        $('#myAssigned').text(d.myAssigned ?? '-');
+        $('#overtime').text(d.overtime ?? '-');
+    });
+}
+
+// 走主框架 openPage（同步左侧高亮）
+function go(url){
+    if (window.parent && window.parent.openPage) {
+        window.parent.openPage(url);
+    } else {
+        window.location.href = url;
+    }
+}
+</script>

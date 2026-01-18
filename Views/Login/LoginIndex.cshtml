@@ -318,7 +318,7 @@
                         layer.close(idx);
                         if (res.code == 0) {
                             layer.msg(res.msg, { icon: 6, time: 1000 }, function () {
-                                window.location.href = "/Home/Index";
+                                window.location.href = "/Home/Index?fresh=1";
                             });
                         } else {
                             $('#errorBox').text(res.msg).fadeIn();

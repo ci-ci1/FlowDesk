@@ -62,107 +62,105 @@
 
 <script src="~/Scripts/jquery-3.4.1.js"></script>
 <script src="~/Content/layui/layui.js"></script>
-
-<!-- ECharts CDN（你也可以下载到本地） -->
-<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="~/Content/layui/JS/ECharts.js"></script>
 
 <script>
-layui.use(['form', 'layer'], function () {
-    var form = layui.form;
-    var layer = layui.layer;
-    var $ = layui.$;
+    layui.use(['form', 'layer'], function () {
+        var form = layui.form;
+        var layer = layui.layer;
+        var $ = layui.$;
 
-    form.render();
+        form.render();
 
-    var chartStatus = echarts.init(document.getElementById('chartStatus'));
-    var chartTrend  = echarts.init(document.getElementById('chartTrend'));
-    var chartCat    = echarts.init(document.getElementById('chartCat'));
+        var chartStatus = echarts.init(document.getElementById('chartStatus'));
+        var chartTrend = echarts.init(document.getElementById('chartTrend'));
+        var chartCat = echarts.init(document.getElementById('chartCat'));
 
-    function statusName(v){
-        switch(v){
-            case 1: return '新建';
-            case 2: return '已受理';
-            case 3: return '处理中';
-            case 4: return '待确认';
-            case 5: return '已完成';
-            case 6: return '已关闭';
-            default: return '状态' + v;
-        }
-    }
-
-    function loadData(){
-        var days = $('#days').val();
-
-        $.get('/Ticket/ReportData', { days: days }, function(res){
-            if(res.code !== 0){
-                layer.msg(res.msg || '加载失败', {icon:5});
-                return;
+        function statusName(v) {
+            switch (v) {
+                case 1: return '新建';
+                case 2: return '已受理';
+                case 3: return '处理中';
+                case 4: return '待确认';
+                case 5: return '已完成';
+                case 6: return '已关闭';
+                default: return '状态' + v;
             }
+        }
 
-            // 1) 状态分布
-            var byStatus = res.data.byStatus || [];
-            var pieData = byStatus.map(function(x){
-                return { name: statusName(x.Status), value: x.Cnt };
+        function loadData() {
+            var days = $('#days').val();
+
+            $.get('/Ticket/ReportData', { days: days }, function (res) {
+                if (res.code !== 0) {
+                    layer.msg(res.msg || '加载失败', { icon: 5 });
+                    return;
+                }
+
+                // 1) 状态分布
+                var byStatus = res.data.byStatus || [];
+                var pieData = byStatus.map(function (x) {
+                    return { name: statusName(x.Status), value: x.Cnt };
+                });
+
+                chartStatus.setOption({
+                    tooltip: { trigger: 'item' },
+                    legend: { bottom: 0 },
+                    series: [{
+                        type: 'pie',
+                        radius: '70%',
+                        data: pieData
+                    }]
+                });
+
+                // 2) 趋势
+                var trend = res.data.trend || [];
+                var xAxis = trend.map(x => x.Day);
+                var yAxis = trend.map(x => x.Cnt);
+
+                chartTrend.setOption({
+                    tooltip: { trigger: 'axis' },
+                    xAxis: { type: 'category', data: xAxis },
+                    yAxis: { type: 'value' },
+                    series: [{
+                        name: '新增工单',
+                        type: 'line',
+                        smooth: true,
+                        data: yAxis
+                    }]
+                });
+
+                // 3) 分类 TOP10
+                var catTop = res.data.catTop || [];
+                var catNames = catTop.map(x => x.Name).reverse();
+                var catCnts = catTop.map(x => x.Cnt).reverse();
+
+                chartCat.setOption({
+                    tooltip: { trigger: 'axis' },
+                    grid: { left: 80, right: 20, top: 20, bottom: 20 },
+                    xAxis: { type: 'value' },
+                    yAxis: { type: 'category', data: catNames },
+                    series: [{
+                        name: '工单数',
+                        type: 'bar',
+                        data: catCnts
+                    }]
+                });
             });
+        }
 
-            chartStatus.setOption({
-                tooltip: { trigger: 'item' },
-                legend: { bottom: 0 },
-                series: [{
-                    type: 'pie',
-                    radius: '70%',
-                    data: pieData
-                }]
-            });
-
-            // 2) 趋势
-            var trend = res.data.trend || [];
-            var xAxis = trend.map(x => x.Day);
-            var yAxis = trend.map(x => x.Cnt);
-
-            chartTrend.setOption({
-                tooltip: { trigger: 'axis' },
-                xAxis: { type: 'category', data: xAxis },
-                yAxis: { type: 'value' },
-                series: [{
-                    name: '新增工单',
-                    type: 'line',
-                    smooth: true,
-                    data: yAxis
-                }]
-            });
-
-            // 3) 分类 TOP10
-            var catTop = res.data.catTop || [];
-            var catNames = catTop.map(x => x.Name).reverse();
-            var catCnts  = catTop.map(x => x.Cnt).reverse();
-
-            chartCat.setOption({
-                tooltip: { trigger: 'axis' },
-                grid: { left: 80, right: 20, top: 20, bottom: 20 },
-                xAxis: { type: 'value' },
-                yAxis: { type: 'category', data: catNames },
-                series: [{
-                    name: '工单数',
-                    type: 'bar',
-                    data: catCnts
-                }]
-            });
+        $('#btnReload').on('click', function () {
+            loadData();
         });
-    }
 
-    $('#btnReload').on('click', function(){
+        // 首次加载
         loadData();
+
+        // iframe 内自适应：窗口大小变化重绘
+        window.onresize = function () {
+            chartStatus.resize();
+            chartTrend.resize();
+            chartCat.resize();
+        };
     });
-
-    // 首次加载
-    loadData();
-
-    // iframe 内自适应：窗口大小变化重绘
-    window.onresize = function(){
-        chartStatus.resize();
-        chartTrend.resize();
-        chartCat.resize();
-    };
-});
 </script>

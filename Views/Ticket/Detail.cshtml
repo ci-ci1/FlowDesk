@@ -2,6 +2,53 @@
 @{
     ViewBag.Title = "工单详情";
     Layout = null;
+
+    bool isAdmin = ViewBag.IsAdmin != null && (bool)ViewBag.IsAdmin;
+    bool canOp = ViewBag.CanOperate != null && (bool)ViewBag.CanOperate;
+    byte st = Model.Ticket.Status;
+}
+
+@functions{
+    public string StatusText(byte? s)
+    {
+        if (!s.HasValue) return "-";
+        switch (s.Value)
+        {
+            case 1: return "新建";
+            case 2: return "已受理";
+            case 3: return "处理中";
+            case 4: return "待确认";
+            case 5: return "已完成";
+            case 6: return "已关闭";
+            default: return "状态" + s.Value;
+        }
+    }
+
+    public string PriorityText(byte p)
+    {
+        switch (p)
+        {
+            case 1: return "低";
+            case 2: return "中";
+            case 3: return "高";
+            case 4: return "紧急";
+            default: return "P" + p;
+        }
+    }
+
+    public string ActionText(string a)
+    {
+        switch (a)
+        {
+            case "CREATE": return "创建";
+            case "ASSIGN": return "指派";
+            case "ACCEPT": return "受理";
+            case "PROCESS": return "开始处理";
+            case "DONE": return "完成";
+            case "CLOSE": return "关闭";
+            default: return a ?? "";
+        }
+    }
 }
 
 <link href="~/Content/layui/css/layui.css" rel="stylesheet" />
@@ -17,24 +64,84 @@
                 <div class="layui-card-header">基本信息</div>
                 <div class="layui-card-body">
                     <div><b>标题：</b>@Model.Ticket.Title</div>
-                    <div style="margin-top:6px;"><b>状态：</b><span id="statusText"></span></div>
-                    <div style="margin-top:6px;"><b>优先级：</b><span id="priorityText"></span></div>
+                    <div style="margin-top:6px;"><b>状态：</b>@StatusText(Model.Ticket.Status)</div>
+                    <div style="margin-top:6px;"><b>优先级：</b>@PriorityText(Model.Ticket.Priority)</div>
                     <div style="margin-top:6px;"><b>分类：</b>@(Model.Category?.Name ?? "未分类")</div>
                     <div style="margin-top:6px;"><b>创建人：</b>@(Model.Creator?.RealName ?? "")</div>
                     <div style="margin-top:6px;"><b>处理人：</b>@(Model.Assignee?.RealName ?? "未指派")</div>
+
                     <hr />
                     <div><b>描述：</b></div>
                     <div style="white-space:pre-wrap;">@Model.Ticket.Description</div>
 
                     <hr />
+
                     <div>
-                        <button class="layui-btn layui-btn-sm" onclick="doAccept()">受理</button>
-                        <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="doProcess()">开始处理</button>
-                        <button class="layui-btn layui-btn-sm layui-btn-warm" onclick="doDone()">完成</button>
-                        <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="doClose()">关闭</button>
+                        @* 状态=1：受理；管理员可指派 *@
+                        @if (st == 1 && (canOp || isAdmin))
+                        {
+                            <button class="layui-btn layui-btn-sm" onclick="doAccept()">受理</button>
+                        }
+                        @if (st == 1 && isAdmin)
+                        {
+                            <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="openAssign()">指派</button>
+                        }
+
+                        @* 状态=2：开始处理、关闭 *@
+                        @if (st == 2 && (canOp || isAdmin))
+                        {
+                            <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="doProcess()">开始处理</button>
+                            <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="doClose()">关闭</button>
+                        }
+
+                        @* 状态=3：完成、关闭 *@
+                        @if (st == 3 && (canOp || isAdmin))
+                        {
+                            <button class="layui-btn layui-btn-sm layui-btn-warm" onclick="doDone()">完成</button>
+                            <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="doClose()">关闭</button>
+                        }
+
+                        @* 状态=5：管理员可关闭（可选） *@
+                        @if (st == 5 && isAdmin)
+                        {
+                            <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="doClose()">关闭</button>
+                        }
+
+                        @if (!(canOp || isAdmin))
+                        {
+                            <span class="layui-badge layui-bg-gray">无操作权限（仅处理人/管理员可操作）</span>
+                        }
                     </div>
                 </div>
             </div>
+
+
+            <div class="layui-card" style="margin-top:10px;">
+                <div class="layui-card-header">附件</div>
+                <div class="layui-card-body">
+
+                    <div style="margin-bottom:10px;">
+                        <input type="file" id="fileInput" />
+                        <button class="layui-btn layui-btn-sm" onclick="uploadFile()">上传</button>
+                    </div>
+
+                    <table class="layui-table">
+                        <thead>
+                            <tr>
+                                <th>文件名</th>
+                                <th style="width:120px;">大小</th>
+                                <th style="width:180px;">上传时间</th>
+                                <th style="width:160px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attBody">
+                            <tr><td colspan="4" style="color:#999;">加载中...</td></tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+
 
             <div class="layui-card" style="margin-top:10px;">
                 <div class="layui-card-header">评论</div>
@@ -45,14 +152,22 @@
                     </div>
 
                     <hr />
-                    @foreach (var c in Model.Comments)
+
+                    @if (Model.Comments != null && Model.Comments.Count > 0)
                     {
-                        <div style="margin-bottom:10px;">
-                            <div class="layui-text" style="color:#666;">
-                                用户ID：@c.UserId  时间：@c.CreatedAt
+                        foreach (var c in Model.Comments)
+                        {
+                            <div style="margin-bottom:10px;">
+                                <div class="layui-text" style="color:#666;">
+                                    @c.UserName　时间：@c.CreatedAt
+                                </div>
+                                <div style="white-space:pre-wrap;">@c.Content</div>
                             </div>
-                            <div style="white-space:pre-wrap;">@c.Content</div>
-                        </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="layui-text" style="color:#999;">暂无评论</div>
                     }
                 </div>
             </div>
@@ -63,18 +178,25 @@
                 <div class="layui-card-header">流转日志</div>
                 <div class="layui-card-body">
                     <ul class="layui-timeline">
-                        @foreach (var f in Model.FlowLogs)
+                        @if (Model.FlowLogs != null && Model.FlowLogs.Count > 0)
                         {
-                            <li class="layui-timeline-item">
-                                <i class="layui-icon layui-timeline-axis">&#xe63f;</i>
-                                <div class="layui-timeline-content layui-text">
-                                    <h3 class="layui-timeline-title">@f.CreatedAt</h3>
-                                    <div>动作：@f.Action</div>
-                                    <div>状态：@f.FromStatus -> @f.ToStatus</div>
-                                    <div>操作人ID：@f.OperatorId</div>
-                                    <div>备注：@f.Remark</div>
-                                </div>
-                            </li>
+                            foreach (var f in Model.FlowLogs)
+                            {
+                                <li class="layui-timeline-item">
+                                    <i class="layui-icon layui-timeline-axis">&#xe63f;</i>
+                                    <div class="layui-timeline-content layui-text">
+                                        <h3 class="layui-timeline-title">@f.CreatedAt</h3>
+                                        <div>动作：@ActionText(f.Action)</div>
+                                        <div>状态：@StatusText(f.FromStatus) -> @StatusText(f.ToStatus)</div>
+                                        <div>操作人：@f.OperatorName</div>
+                                        <div>备注：@f.Remark</div>
+                                    </div>
+                                </li>
+                            }
+                        }
+                        else
+                        {
+                            <div class="layui-text" style="color:#999;">暂无流转日志</div>
                         }
                     </ul>
                 </div>
@@ -88,67 +210,186 @@
 
 <script>
 var ticketId = @Model.Ticket.Id;
-var status = @Model.Ticket.Status;
-var priority = @Model.Ticket.Priority;
 
-layui.use(['layer'], function () {
-    setText();
-});
+layui.use(['layer'], function () { });
 
-function setText(){
-    $('#statusText').text(statusName(status));
-    $('#priorityText').html(priorityName(priority));
-}
+    loadAttachments();
 
-function statusName(v){
-    switch(v){
-        case 1: return '新建';
-        case 2: return '已受理';
-        case 3: return '处理中';
-        case 5: return '已完成';
-        case 6: return '已关闭';
-        default: return '状态' + v;
-    }
-}
-function priorityName(v){
-    switch(v){
-        case 1: return '低';
-        case 2: return '中';
-        case 3: return '高';
-        case 4: return '<span style="color:#FF5722;">紧急</span>';
-        default: return v;
-    }
-}
-
-function post(url, data, okMsg){
-    $.post(url, data, function(res){
-        if(res.code === 0){
-            layui.layer.msg(okMsg || '操作成功', {icon:1, time:800}, function(){
-                location.reload(); // 简单粗暴：刷新详情页，重新加载状态/日志/评论
+function post(url, data, okMsg, closeOnOk) {
+    $.post(url, data, function (res) {
+        if (res.code === 0) {
+            layui.layer.msg(okMsg || '操作成功', { icon: 1, time: 600 }, function () {
+                if (closeOnOk) {
+                    // 关闭当前详情弹窗 -> 触发列表页 layer.open 的 end 回调刷新表格
+                    var index = parent.layer.getFrameIndex(window.name);
+                    parent.layer.close(index);
+                } else {
+                    location.reload();
+                }
             });
-        }else{
-            layui.layer.msg(res.msg || '操作失败', {icon:5});
+        } else {
+            layui.layer.msg(res.msg || '操作失败', { icon: 5 });
         }
+    }).fail(function () {
+        layui.layer.msg('网络错误', { icon: 5 });
     });
 }
 
-function doAccept(){ post('/Ticket/Accept', { ticketId: ticketId }, '已受理'); }
-function doProcess(){ post('/Ticket/StartProcess', { ticketId: ticketId }, '开始处理'); }
-function doDone(){
-    layui.layer.prompt({title:'完成备注（可选）', formType: 2}, function(text, index){
+function doAccept() { post('/Ticket/Accept', { ticketId: ticketId }, '已受理', true); }
+function doProcess() { post('/Ticket/StartProcess', { ticketId: ticketId }, '开始处理', true); }
+
+function doDone() {
+    layui.layer.prompt({ title: '完成备注（可选）', formType: 2 }, function (text, index) {
         layui.layer.close(index);
-        post('/Ticket/Done', { ticketId: ticketId, remark: text }, '已完成');
+        post('/Ticket/Done', { ticketId: ticketId, remark: text }, '已完成', true);
     });
 }
-function doClose(){
-    layui.layer.prompt({title:'关闭原因（可选）', formType: 2}, function(text, index){
+function doClose() {
+    layui.layer.prompt({ title: '关闭原因（可选）', formType: 2 }, function (text, index) {
         layui.layer.close(index);
-        post('/Ticket/Close', { ticketId: ticketId, remark: text }, '已关闭');
+        post('/Ticket/Close', { ticketId: ticketId, remark: text }, '已关闭', true);
     });
 }
 
-function addComment(){
+function addComment() {
     var content = $('#comment').val();
-    post('/Ticket/AddComment', { ticketId: ticketId, content: content }, '评论已提交');
+    post('/Ticket/AddComment', { ticketId: ticketId, content: content }, '评论已提交', false);
 }
+
+// 指派（管理员）
+function openAssign() {
+    $.get('/Ticket/UserOptions', function (res) {
+        if (res.code !== 0) {
+            layui.layer.msg(res.msg || '加载用户失败', { icon: 5 });
+            return;
+        }
+
+        var html = '<div style="padding:15px;">'
+            + '<select id="assigneeSel" class="layui-select" style="width:100%;height:36px;">';
+
+        res.data.forEach(function (u) {
+            html += '<option value="' + u.Id + '">' + u.Name + '</option>';
+        });
+        html += '</select></div>';
+
+        layui.layer.open({
+            type: 1,
+            title: '指派处理人',
+            area: ['420px', '200px'],
+            content: html,
+            btn: ['确定', '取消'],
+            yes: function (index) {
+                var uid = $('#assigneeSel').val();
+                post('/Ticket/Assign', { ticketId: ticketId, assigneeId: uid }, '已指派', true);
+                // 注意：post 成功会关闭详情弹窗，所以这里不用手动 close
+            }
+        });
+    }).fail(function () {
+        layui.layer.msg('网络错误', { icon: 5 });
+    });
+    }
+
+    function loadAttachments() {
+        $.get('/Ticket/AttachmentList', { ticketId: ticketId }, function (res) {
+            if (res.code !== 0) {
+                $('#attBody').html('<tr><td colspan="4" style="color:#999;">' + (res.msg || '无权限或加载失败') + '</td></tr>');
+                return;
+            }
+
+            var list = res.data || [];
+            if (list.length === 0) {
+                $('#attBody').html('<tr><td colspan="4" style="color:#999;">暂无附件</td></tr>');
+                return;
+            }
+
+            var html = '';
+            list.forEach(function (a) {
+                html += '<tr>'
+                    + '<td>' + escapeHtml(a.FileName) + '</td>'
+                    + '<td>' + formatSize(a.FileSize) + '</td>'
+                    + '<td>' + formatTime(a.CreatedAt) + '</td>'
+                    + '<td>'
+                    + '<a class="layui-btn layui-btn-xs" href="/Ticket/DownloadAttachment?id=' + a.Id + '" target="_blank">下载</a> '
+                    + '<a class="layui-btn layui-btn-danger layui-btn-xs" href="javascript:;" onclick="deleteAttachment(' + a.Id + ')">删除</a>'
+                    + '</td>'
+                    + '</tr>';
+            });
+
+            $('#attBody').html(html);
+        });
+    }
+
+    function uploadFile() {
+        var f = $('#fileInput')[0].files[0];
+        if (!f) {
+            layui.layer.msg('请选择文件', { icon: 5 });
+            return;
+        }
+
+        var fd = new FormData();
+        fd.append('ticketId', ticketId);
+        fd.append('file', f);
+
+        $.ajax({
+            url: '/Ticket/UploadAttachment',
+            type: 'post',
+            data: fd,
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                if (res.code === 0) {
+                    layui.layer.msg('上传成功', { icon: 1, time: 600 }, function () {
+                        $('#fileInput').val('');
+                        loadAttachments();
+                    });
+                } else {
+                    layui.layer.msg(res.msg || '上传失败', { icon: 5 });
+                }
+            },
+            error: function () {
+                layui.layer.msg('网络错误', { icon: 5 });
+            }
+        });
+    }
+
+    function deleteAttachment(id) {
+        layui.layer.confirm('确定删除该附件吗？', { icon: 3, title: '删除确认' }, function (i) {
+            layui.layer.close(i);
+            $.post('/Ticket/DeleteAttachment', { id: id }, function (res) {
+                if (res.code === 0) {
+                    layui.layer.msg('已删除', { icon: 1, time: 600 }, function () {
+                        loadAttachments();
+                    });
+                } else {
+                    layui.layer.msg(res.msg || '删除失败', { icon: 5 });
+                }
+            });
+        });
+    }
+
+    function formatSize(bytes) {
+        if (bytes == null) return '';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    // MVC5 Date: "/Date(1700000000000)/"
+    function formatTime(v) {
+        if (!v) return '';
+        if (typeof v === 'string' && v.indexOf('/Date(') === 0) {
+            var ms = parseInt(v.replace('/Date(', '').replace(')/', ''));
+            var dt = new Date(ms);
+            return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate())
+                + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+        }
+        return v;
+    }
+    function pad(n) { return n < 10 ? '0' + n : n; }
+
+    function escapeHtml(s) {
+        if (!s) return '';
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
 </script>

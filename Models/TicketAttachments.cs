@@ -22,6 +22,7 @@ namespace FlowDesk.Models
         public string ContentType { get; set; }
         public long UploadedBy { get; set; }
         public System.DateTime CreatedAt { get; set; }
+        public bool IsDeleted { get; set; }
     
         public virtual Tickets Tickets { get; set; }
         public virtual Users Users { get; set; }

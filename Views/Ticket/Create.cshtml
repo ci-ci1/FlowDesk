@@ -78,42 +78,38 @@
 <script src="~/Content/layui/layui.js"></script>
 
 <script>
-layui.use(['form', 'layer', 'laydate'], function () {
-    var form = layui.form;
-    var layer = layui.layer;
-    var laydate = layui.laydate;
-    var $ = layui.$;
+    layui.use(['form', 'layer', 'laydate'], function () {
+        var form = layui.form;
+        var layer = layui.layer;
+        var laydate = layui.laydate;
+        var $ = layui.$;
 
-    laydate.render({
-        elem: '#expectedAt',
-        type: 'datetime'
-    });
-
-    form.on('submit(submitTicket)', function (data) {
-        $.ajax({
-            url: '/Ticket/CreatePost',
-            type: 'post',
-            data: data.field,
-            success: function (res) {
-                if (res.code === 0) {
-                    layer.msg('创建成功：' + (res.data ? res.data.code : ''), { icon: 1, time: 1000 }, function () {
-                        if (window.parent && window.parent.openPage) {
-                            window.parent.openPage('/Ticket/Index');
-                        } else {
-                            window.location.href = '/Ticket/Index';
-                        }
-                    });
-                } else {
-                    layer.msg(res.msg || '创建失败', { icon: 5 });
-                }
-            },
-            error: function () {
-                layer.msg('网络错误', { icon: 5 });
-            }
+        laydate.render({
+            elem: '#expectedAt',
+            type: 'datetime'
         });
-        return false; // 阻止表单跳转
+
+        form.on('submit(submitTicket)', function (data) {
+            $.ajax({
+                url: '/Ticket/CreatePost',
+                type: 'post',
+                data: data.field,
+                success: function (res) {
+                    if (res.code === 0) {
+                        layer.msg('创建成功：' + (res.data ? res.data.code : ''), { icon: 1, time: 900 }, function () {
+                            BackToList();
+                        });
+                    } else {
+                        layer.msg(res.msg || '创建失败', { icon: 5 });
+                    }
+                },
+                error: function () {
+                    layer.msg('网络错误', { icon: 5 });
+                }
+            });
+            return false;
+        });
     });
-});
 
     function BackToList() {
         if (window.parent && window.parent.openPage) {
