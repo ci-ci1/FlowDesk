@@ -1,0 +1,125 @@
+﻿@using FlowDesk.Models
+@{
+    ViewBag.Title = "资产入库";
+    Layout = null;
+    var types = ViewBag.Types as System.Collections.Generic.List<AssetTypes>;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">资产入库</blockquote>
+
+    <form class="layui-form" style="max-width:900px;">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">资产编号</label>
+            <div class="layui-input-block">
+                <input type="text" name="assetNo" required lay-verify="required" placeholder="如：IT-LAP-001" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" required lay-verify="required" placeholder="如：ThinkPad X1 Carbon" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">类型</label>
+            <div class="layui-input-block">
+                <select name="typeId">
+                    <option value="">请选择</option>
+                    @if (types != null)
+                    {
+                        foreach (var t in types)
+                        {
+                            <option value="@t.Id">@t.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">品牌/型号</label>
+            <div class="layui-input-inline">
+                <input type="text" name="brand" placeholder="品牌" class="layui-input" />
+            </div>
+            <div class="layui-input-inline">
+                <input type="text" name="model" placeholder="型号" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">序列号</label>
+            <div class="layui-input-block">
+                <input type="text" name="serialNo" placeholder="SN" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">购买日期</label>
+            <div class="layui-input-block">
+                <input type="text" name="purchaseDate" id="purchaseDate" placeholder="可选" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">部门/位置</label>
+            <div class="layui-input-inline">
+                <input type="text" name="dept" placeholder="部门" class="layui-input" />
+            </div>
+            <div class="layui-input-inline">
+                <input type="text" name="location" placeholder="位置" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">备注</label>
+            <div class="layui-input-block">
+                <textarea name="remark" class="layui-textarea" placeholder="可选"></textarea>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="submitAsset">提交入库</button>
+                <a class="layui-btn layui-btn-primary" href="javascript:;" onclick="BackToList()">返回</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['form','layer','laydate'], function(){
+    var form = layui.form;
+    var layer = layui.layer;
+    var laydate = layui.laydate;
+    var $ = layui.$;
+
+    laydate.render({ elem:'#purchaseDate', type:'date' });
+
+    form.on('submit(submitAsset)', function(data){
+        $.post('/Asset/CreatePost', data.field, function(res){
+            if(res.code === 0){
+                layer.msg('入库成功', {icon:1, time:800}, function(){
+                    BackToList();
+                });
+            }else{
+                layer.msg(res.msg || '入库失败', {icon:5});
+            }
+        });
+        return false;
+    });
+});
+
+function BackToList(){
+    if (window.parent && window.parent.openPage) window.parent.openPage('/Asset/Index');
+    else window.location.href = '/Asset/Index';
+}
+</script>

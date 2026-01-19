@@ -1,0 +1,247 @@
+﻿@model FlowDesk.Models.Assets
+@using FlowDesk.Models
+@{
+    ViewBag.Title = "资产详情";
+    Layout = null;
+
+    var type = ViewBag.Type as AssetTypes;
+    var owner = ViewBag.Owner as Users;
+    var users = ViewBag.Users as System.Collections.Generic.List<Users>;
+    var logs = ViewBag.Logs as System.Collections.IEnumerable; // 可留可删
+    var relTickets = ViewBag.RelTickets as dynamic;
+    bool isAdmin = ViewBag.IsAdmin != null && (bool)ViewBag.IsAdmin;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">资产详情：@Model.AssetNo</blockquote>
+
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md7">
+            <div class="layui-card">
+                <div class="layui-card-header">基本信息</div>
+                <div class="layui-card-body">
+                    <div><b>名称：</b>@Model.Name</div>
+                    <div style="margin-top:6px;"><b>类型：</b>@(type?.Name ?? "")</div>
+                    <div style="margin-top:6px;"><b>品牌/型号：</b>@Model.Brand @Model.Model</div>
+                    <div style="margin-top:6px;"><b>SN：</b>@Model.SerialNo</div>
+                    <div style="margin-top:6px;"><b>状态：</b>@AssetStatusText(Model.Status)</div>
+                    <div style="margin-top:6px;"><b>使用人：</b>@(owner?.RealName ?? "未领用")</div>
+                    <div style="margin-top:6px;"><b>部门：</b>@Model.Dept</div>
+                    <div style="margin-top:6px;"><b>位置：</b>@Model.Location</div>
+                    <div style="margin-top:6px;"><b>备注：</b>@Model.Remark</div>
+
+                    @if (isAdmin)
+                    {
+                        <hr />
+                        <div>
+                            <button class="layui-btn layui-btn-sm" onclick="openCheckout()">领用</button>
+                            <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="doReturn()">归还</button>
+                            <button class="layui-btn layui-btn-sm layui-btn-warm" onclick="doRepair()">维修</button>
+                            <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="doScrap()">报废</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="layui-text" style="color:#999;margin-top:10px;">仅管理员可操作资产状态</div>
+                    }
+                </div>
+            </div>
+
+            <!-- 关联工单 -->
+            <div class="layui-card" style="margin-top:10px;">
+                <div class="layui-card-header">关联工单（最近 20 条）</div>
+                <div class="layui-card-body" style="max-height:260px;overflow:auto;">
+                    <table class="layui-table">
+                        <thead>
+                            <tr>
+                                <th style="width:160px;">工单号</th>
+                                <th>标题</th>
+                                <th style="width:100px;">状态</th>
+                                <th style="width:180px;">创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (relTickets != null)
+                            {
+                                foreach (var t in relTickets)
+                                {
+                                    <tr>
+                                        <td><a href="javascript:;" onclick="openTicketDetail(@t.Id)">@t.Code</a></td>
+                                        <td>@t.Title</td>
+                                        <td>@TicketStatusText((byte)t.Status)</td>
+                                        <td>@t.CreatedAt</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="4" style="color:#999;">暂无关联工单</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="layui-col-md5">
+            <!-- 操作记录 -->
+            <div class="layui-card">
+                <div class="layui-card-header">操作记录</div>
+                <div class="layui-card-body" style="max-height:720px;overflow:auto;">
+                    <table class="layui-table">
+                        <thead>
+                            <tr>
+                                <th style="width:120px;">时间</th>
+                                <th style="width:90px;">类型</th>
+                                <th>内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (ViewBag.Logs != null)
+                            {
+                                foreach (var item in (IEnumerable<dynamic>)ViewBag.Logs)
+                                {
+                                    <tr>
+                                        <td>@item.CreatedAt</td>
+                                        <td>@OpTypeText((byte)item.OpType)</td>
+                                        <td>
+                                            操作人：@item.OperatorName<br />
+                                            @if (!string.IsNullOrEmpty((string)item.FromOwnerName) || !string.IsNullOrEmpty((string)item.ToOwnerName))
+                                            {
+                                                <span>使用人：@item.FromOwnerName -> @item.ToOwnerName</span><br />
+                                            }
+                                            备注：@item.Remark
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="3" style="color:#999;">暂无记录</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions{
+    public string AssetStatusText(byte v)
+    {
+        switch (v)
+        {
+            case 1: return "在库";
+            case 2: return "使用中";
+            case 3: return "维修中";
+            case 4: return "已报废";
+            default: return v.ToString();
+        }
+    }
+    public string OpTypeText(byte v)
+    {
+        switch (v)
+        {
+            case 1: return "入库";
+            case 2: return "领用";
+            case 3: return "归还";
+            case 4: return "报废";
+            case 5: return "维修";
+            default: return v.ToString();
+        }
+    }
+    public string TicketStatusText(byte v)
+    {
+        switch (v)
+        {
+            case 1: return "新建";
+            case 2: return "已受理";
+            case 3: return "处理中";
+            case 4: return "待确认";
+            case 5: return "已完成";
+            case 6: return "已关闭";
+            default: return v.ToString();
+        }
+    }
+}
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+var assetId = @Model.Id;
+
+layui.use(['layer'], function(){});
+
+function post(url, data, okMsg){
+    $.post(url, data, function(res){
+        if(res.code === 0){
+            layui.layer.msg(okMsg || '操作成功', {icon:1, time:700}, function(){
+                var index = parent.layer.getFrameIndex(window.name);
+                parent.layer.close(index);
+            });
+        }else{
+            layui.layer.msg(res.msg || '操作失败', {icon:5});
+        }
+    });
+}
+
+function openCheckout(){
+    var html = '<div style="padding:15px;">'
+        + '<select id="toOwnerId" class="layui-select" style="width:100%;height:36px;">'
+        @if (users != null)
+        {
+            foreach (var u in users)
+            {
+                @: + '<option value="@u.Id">@u.RealName (@u.UserName)</option>'
+            }
+        }
+        + '</select>'
+        + '</div>';
+
+    layui.layer.open({
+        type: 1,
+        title: '领用给',
+        area: ['420px','220px'],
+        content: html,
+        btn: ['确定','取消'],
+        yes: function(index){
+            var uid = $('#toOwnerId').val();
+            layui.layer.close(index);
+            post('/Asset/Checkout', { assetId: assetId, toOwnerId: uid, remark: '领用' }, '已领用');
+        }
+    });
+}
+
+function doReturn(){
+    layui.layer.confirm('确认归还该资产？', {icon:3, title:'归还确认'}, function(i){
+        layui.layer.close(i);
+        post('/Asset/Return', { assetId: assetId, remark: '归还' }, '已归还');
+    });
+}
+function doRepair(){
+    layui.layer.prompt({title:'维修备注（可选）', formType: 2}, function(text, idx){
+        layui.layer.close(idx);
+        post('/Asset/Repair', { assetId: assetId, remark: text }, '已标记维修');
+    });
+}
+function doScrap(){
+    layui.layer.prompt({title:'报废原因（可选）', formType: 2}, function(text, idx){
+        layui.layer.close(idx);
+        post('/Asset/Scrap', { assetId: assetId, remark: text }, '已报废');
+    });
+}
+
+function openTicketDetail(ticketId){
+    layui.layer.open({
+        type: 2,
+        title: '工单详情',
+        content: '/Ticket/Detail?id=' + ticketId,
+        area: ['1000px', '650px']
+    });
+}
+</script>

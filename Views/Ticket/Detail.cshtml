@@ -5,7 +5,9 @@
 
     bool isAdmin = ViewBag.IsAdmin != null && (bool)ViewBag.IsAdmin;
     bool canOp = ViewBag.CanOperate != null && (bool)ViewBag.CanOperate;
-    byte st = Model.Ticket.Status;
+
+    // 关联资产（后端 ViewBag.RelAssets = List<匿名对象>）
+    var relAssets = ViewBag.RelAssets as dynamic;
 }
 
 @functions{
@@ -46,7 +48,23 @@
             case "PROCESS": return "开始处理";
             case "DONE": return "完成";
             case "CLOSE": return "关闭";
+            case "UPLOAD": return "上传附件";
+            case "DEL_FILE": return "删除附件";
+            case "BIND_ASSET": return "绑定资产";
+            case "UNBIND_ASSET": return "解绑资产";
             default: return a ?? "";
+        }
+    }
+
+    public string AssetStatusText(byte v)
+    {
+        switch (v)
+        {
+            case 1: return "在库";
+            case 2: return "使用中";
+            case 3: return "维修中";
+            case 4: return "已报废";
+            default: return v.ToString();
         }
     }
 }
@@ -59,7 +77,10 @@
     </blockquote>
 
     <div class="layui-row layui-col-space15">
+        <!-- 左侧：信息/操作/评论/附件/关联资产 -->
         <div class="layui-col-md7">
+
+            <!-- 基本信息 -->
             <div class="layui-card">
                 <div class="layui-card-header">基本信息</div>
                 <div class="layui-card-body">
@@ -76,33 +97,30 @@
 
                     <hr />
 
+                    <!-- 按状态/权限显示按钮 -->
                     <div>
-                        @* 状态=1：受理；管理员可指派 *@
-                        @if (st == 1 && (canOp || isAdmin))
+                        @if (Model.Ticket.Status == 1 && (canOp || isAdmin))
                         {
                             <button class="layui-btn layui-btn-sm" onclick="doAccept()">受理</button>
                         }
-                        @if (st == 1 && isAdmin)
+                        @if (Model.Ticket.Status == 1 && isAdmin)
                         {
                             <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="openAssign()">指派</button>
                         }
 
-                        @* 状态=2：开始处理、关闭 *@
-                        @if (st == 2 && (canOp || isAdmin))
+                        @if (Model.Ticket.Status == 2 && (canOp || isAdmin))
                         {
                             <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="doProcess()">开始处理</button>
                             <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="doClose()">关闭</button>
                         }
 
-                        @* 状态=3：完成、关闭 *@
-                        @if (st == 3 && (canOp || isAdmin))
+                        @if (Model.Ticket.Status == 3 && (canOp || isAdmin))
                         {
                             <button class="layui-btn layui-btn-sm layui-btn-warm" onclick="doDone()">完成</button>
                             <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="doClose()">关闭</button>
                         }
 
-                        @* 状态=5：管理员可关闭（可选） *@
-                        @if (st == 5 && isAdmin)
+                        @if (Model.Ticket.Status == 5 && isAdmin)
                         {
                             <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="doClose()">关闭</button>
                         }
@@ -115,7 +133,56 @@
                 </div>
             </div>
 
+            <!-- 关联资产 -->
+            <div class="layui-card" style="margin-top:10px;">
+                <div class="layui-card-header">
+                    关联资产
+                    @if (isAdmin || canOp)
+                    {
+                        <button class="layui-btn layui-btn-xs layui-btn-normal" style="margin-left:10px;" onclick="openAssetBind()">关联资产</button>
+                    }
+                </div>
+                <div class="layui-card-body">
+                    <table class="layui-table">
+                        <thead>
+                            <tr>
+                                <th style="width:160px;">资产编号</th>
+                                <th>名称</th>
+                                <th style="width:120px;">类型</th>
+                                <th style="width:100px;">状态</th>
+                                <th style="width:160px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="relAssetBody">
+                            @if (relAssets != null)
+                            {
+                                foreach (var a in relAssets)
+                                {
+                                    <tr>
+                                        <td>@a.AssetNo</td>
+                                        <td>@a.Name</td>
+                                        <td>@a.TypeName</td>
+                                        <td>@AssetStatusText((byte)a.Status)</td>
+                                        <td>
+                                            <a class="layui-btn layui-btn-xs" href="javascript:;" onclick="openAssetDetail(@a.Id)">查看</a>
+                                            @if (isAdmin || canOp)
+                                            {
+                                                <a class="layui-btn layui-btn-danger layui-btn-xs" href="javascript:;" onclick="unbindAsset(@a.Id)">解绑</a>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="5" style="color:#999;">暂无关联资产</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
+            <!-- 附件 -->
             <div class="layui-card" style="margin-top:10px;">
                 <div class="layui-card-header">附件</div>
                 <div class="layui-card-body">
@@ -142,7 +209,7 @@
                 </div>
             </div>
 
-
+            <!-- 评论 -->
             <div class="layui-card" style="margin-top:10px;">
                 <div class="layui-card-header">评论</div>
                 <div class="layui-card-body">
@@ -173,10 +240,11 @@
             </div>
         </div>
 
+        <!-- 右侧：流转日志 -->
         <div class="layui-col-md5">
             <div class="layui-card">
                 <div class="layui-card-header">流转日志</div>
-                <div class="layui-card-body">
+                <div class="layui-card-body" style="max-height:920px;overflow:auto;">
                     <ul class="layui-timeline">
                         @if (Model.FlowLogs != null && Model.FlowLogs.Count > 0)
                         {
@@ -211,21 +279,21 @@
 <script>
 var ticketId = @Model.Ticket.Id;
 
-layui.use(['layer'], function () { });
-
+layui.use(['layer'], function () {
     loadAttachments();
+});
+
+function closeMe(){
+    var index = parent.layer.getFrameIndex(window.name);
+    parent.layer.close(index);
+}
 
 function post(url, data, okMsg, closeOnOk) {
     $.post(url, data, function (res) {
         if (res.code === 0) {
             layui.layer.msg(okMsg || '操作成功', { icon: 1, time: 600 }, function () {
-                if (closeOnOk) {
-                    // 关闭当前详情弹窗 -> 触发列表页 layer.open 的 end 回调刷新表格
-                    var index = parent.layer.getFrameIndex(window.name);
-                    parent.layer.close(index);
-                } else {
-                    location.reload();
-                }
+                if (closeOnOk) closeMe();
+                else location.reload();
             });
         } else {
             layui.layer.msg(res.msg || '操作失败', { icon: 5 });
@@ -235,9 +303,9 @@ function post(url, data, okMsg, closeOnOk) {
     });
 }
 
+// ===== 工单流转 =====
 function doAccept() { post('/Ticket/Accept', { ticketId: ticketId }, '已受理', true); }
 function doProcess() { post('/Ticket/StartProcess', { ticketId: ticketId }, '开始处理', true); }
-
 function doDone() {
     layui.layer.prompt({ title: '完成备注（可选）', formType: 2 }, function (text, index) {
         layui.layer.close(index);
@@ -251,18 +319,10 @@ function doClose() {
     });
 }
 
-function addComment() {
-    var content = $('#comment').val();
-    post('/Ticket/AddComment', { ticketId: ticketId, content: content }, '评论已提交', false);
-}
-
-// 指派（管理员）
+// ===== 指派（管理员）=====
 function openAssign() {
     $.get('/Ticket/UserOptions', function (res) {
-        if (res.code !== 0) {
-            layui.layer.msg(res.msg || '加载用户失败', { icon: 5 });
-            return;
-        }
+        if (res.code !== 0) { layui.layer.msg(res.msg || '加载用户失败', { icon: 5 }); return; }
 
         var html = '<div style="padding:15px;">'
             + '<select id="assigneeSel" class="layui-select" style="width:100%;height:36px;">';
@@ -278,118 +338,209 @@ function openAssign() {
             area: ['420px', '200px'],
             content: html,
             btn: ['确定', '取消'],
-            yes: function (index) {
+            yes: function () {
                 var uid = $('#assigneeSel').val();
                 post('/Ticket/Assign', { ticketId: ticketId, assigneeId: uid }, '已指派', true);
-                // 注意：post 成功会关闭详情弹窗，所以这里不用手动 close
             }
         });
-    }).fail(function () {
-        layui.layer.msg('网络错误', { icon: 5 });
     });
-    }
+}
 
-    function loadAttachments() {
-        $.get('/Ticket/AttachmentList', { ticketId: ticketId }, function (res) {
-            if (res.code !== 0) {
-                $('#attBody').html('<tr><td colspan="4" style="color:#999;">' + (res.msg || '无权限或加载失败') + '</td></tr>');
-                return;
-            }
+// ===== 评论 =====
+function addComment() {
+    var content = $('#comment').val();
+    post('/Ticket/AddComment', { ticketId: ticketId, content: content }, '评论已提交', false);
+}
 
-            var list = res.data || [];
-            if (list.length === 0) {
-                $('#attBody').html('<tr><td colspan="4" style="color:#999;">暂无附件</td></tr>');
-                return;
-            }
-
-            var html = '';
-            list.forEach(function (a) {
-                html += '<tr>'
-                    + '<td>' + escapeHtml(a.FileName) + '</td>'
-                    + '<td>' + formatSize(a.FileSize) + '</td>'
-                    + '<td>' + formatTime(a.CreatedAt) + '</td>'
-                    + '<td>'
-                    + '<a class="layui-btn layui-btn-xs" href="/Ticket/DownloadAttachment?id=' + a.Id + '" target="_blank">下载</a> '
-                    + '<a class="layui-btn layui-btn-danger layui-btn-xs" href="javascript:;" onclick="deleteAttachment(' + a.Id + ')">删除</a>'
-                    + '</td>'
-                    + '</tr>';
-            });
-
-            $('#attBody').html(html);
-        });
-    }
-
-    function uploadFile() {
-        var f = $('#fileInput')[0].files[0];
-        if (!f) {
-            layui.layer.msg('请选择文件', { icon: 5 });
+// ===== 附件 =====
+function loadAttachments() {
+    $.get('/Ticket/AttachmentList', { ticketId: ticketId }, function (res) {
+        if (res.code !== 0) {
+            $('#attBody').html('<tr><td colspan="4" style="color:#999;">' + (res.msg || '无权限或加载失败') + '</td></tr>');
             return;
         }
 
-        var fd = new FormData();
-        fd.append('ticketId', ticketId);
-        fd.append('file', f);
+        var list = res.data || [];
+        if (list.length === 0) {
+            $('#attBody').html('<tr><td colspan="4" style="color:#999;">暂无附件</td></tr>');
+            return;
+        }
 
-        $.ajax({
-            url: '/Ticket/UploadAttachment',
-            type: 'post',
-            data: fd,
-            processData: false,
-            contentType: false,
-            success: function (res) {
-                if (res.code === 0) {
-                    layui.layer.msg('上传成功', { icon: 1, time: 600 }, function () {
-                        $('#fileInput').val('');
-                        loadAttachments();
-                    });
-                } else {
-                    layui.layer.msg(res.msg || '上传失败', { icon: 5 });
-                }
-            },
-            error: function () {
-                layui.layer.msg('网络错误', { icon: 5 });
+        var html = '';
+        list.forEach(function (a) {
+            html += '<tr>'
+                + '<td>' + escapeHtml(a.FileName) + '</td>'
+                + '<td>' + formatSize(a.FileSize) + '</td>'
+                + '<td>' + formatTime(a.CreatedAt) + '</td>'
+                + '<td>'
+                + '<a class="layui-btn layui-btn-xs" href="/Ticket/DownloadAttachment?id=' + a.Id + '" target="_blank">下载</a> '
+                + '<a class="layui-btn layui-btn-danger layui-btn-xs" href="javascript:;" onclick="deleteAttachment(' + a.Id + ')">删除</a>'
+                + '</td>'
+                + '</tr>';
+        });
+
+        $('#attBody').html(html);
+    });
+}
+
+function uploadFile() {
+    var f = $('#fileInput')[0].files[0];
+    if (!f) { layui.layer.msg('请选择文件', { icon: 5 }); return; }
+
+    var fd = new FormData();
+    fd.append('ticketId', ticketId);
+    fd.append('file', f);
+
+    $.ajax({
+        url: '/Ticket/UploadAttachment',
+        type: 'post',
+        data: fd,
+        processData: false,
+        contentType: false,
+        success: function (res) {
+            if (res.code === 0) {
+                layui.layer.msg('上传成功', { icon: 1, time: 600 }, function () {
+                    $('#fileInput').val('');
+                    loadAttachments();
+                });
+            } else {
+                layui.layer.msg(res.msg || '上传失败', { icon: 5 });
+            }
+        },
+        error: function () { layui.layer.msg('网络错误', { icon: 5 }); }
+    });
+}
+
+function deleteAttachment(id) {
+    layui.layer.confirm('确定删除该附件吗？', { icon: 3, title: '删除确认' }, function (i) {
+        layui.layer.close(i);
+        $.post('/Ticket/DeleteAttachment', { id: id }, function (res) {
+            if (res.code === 0) {
+                layui.layer.msg('已删除', { icon: 1, time: 600 }, function () { loadAttachments(); });
+            } else {
+                layui.layer.msg(res.msg || '删除失败', { icon: 5 });
             }
         });
-    }
+    });
+}
 
-    function deleteAttachment(id) {
-        layui.layer.confirm('确定删除该附件吗？', { icon: 3, title: '删除确认' }, function (i) {
-            layui.layer.close(i);
-            $.post('/Ticket/DeleteAttachment', { id: id }, function (res) {
-                if (res.code === 0) {
-                    layui.layer.msg('已删除', { icon: 1, time: 600 }, function () {
-                        loadAttachments();
-                    });
-                } else {
-                    layui.layer.msg(res.msg || '删除失败', { icon: 5 });
-                }
-            });
+function formatSize(bytes) {
+    if (bytes == null) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+function formatTime(v) {
+    if (!v) return '';
+    if (typeof v === 'string' && v.indexOf('/Date(') === 0) {
+        var ms = parseInt(v.replace('/Date(', '').replace(')/', ''));
+        var dt = new Date(ms);
+        return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate())
+            + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+    }
+    return v;
+}
+function pad(n) { return n < 10 ? '0' + n : n; }
+
+function escapeHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ===== 关联资产 =====
+function openAssetDetail(assetId) {
+    layui.layer.open({
+        type: 2,
+        title: '资产详情',
+        content: '/Asset/Detail?id=' + assetId,
+        area: ['1000px', '650px']
+    });
+}
+
+function unbindAsset(assetId) {
+    layui.layer.confirm('确定解绑该资产吗？', { icon: 3, title: '解绑确认' }, function (i) {
+        layui.layer.close(i);
+        $.post('/Ticket/UnbindAsset', { ticketId: ticketId, assetId: assetId }, function (res) {
+            if (res.code === 0) {
+                layui.layer.msg('已解绑', { icon: 1, time: 600 }, function () { location.reload(); });
+            } else {
+                layui.layer.msg(res.msg || '解绑失败', { icon: 5 });
+            }
         });
-    }
+    });
+}
 
-    function formatSize(bytes) {
-        if (bytes == null) return '';
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-    }
+function openAssetBind() {
+    var html = ''
+        + '<div style="padding:10px;">'
+        + '  <div class="layui-form" style="margin-bottom:8px;">'
+        + '    <div class="layui-inline" style="width:260px;">'
+        + '      <input type="text" id="assetKey" placeholder="输入资产编号/名称/SN" class="layui-input" />'
+        + '    </div>'
+        + '    <button class="layui-btn layui-btn-sm" id="btnAssetSearch">搜索</button>'
+        + '  </div>'
+        + '  <table id="assetSelTable" lay-filter="assetSelTable"></table>'
+        + '</div>';
 
-    // MVC5 Date: "/Date(1700000000000)/"
-    function formatTime(v) {
-        if (!v) return '';
-        if (typeof v === 'string' && v.indexOf('/Date(') === 0) {
-            var ms = parseInt(v.replace('/Date(', '').replace(')/', ''));
-            var dt = new Date(ms);
-            return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate())
-                + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+    layui.layer.open({
+        type: 1,
+        title: '选择资产绑定',
+        area: ['900px', '520px'],
+        content: html,
+        success: function () {
+            renderAssetTable('');
+            $('#btnAssetSearch').on('click', function () {
+                renderAssetTable($('#assetKey').val());
+            });
         }
-        return v;
-    }
-    function pad(n) { return n < 10 ? '0' + n : n; }
+    });
+}
 
-    function escapeHtml(s) {
-        if (!s) return '';
-        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+function renderAssetTable(keyword) {
+    layui.use(['table'], function () {
+        var table = layui.table;
+        table.render({
+            elem: '#assetSelTable',
+            url: '/Ticket/AssetSearch',
+            method: 'get',
+            where: { keyword: keyword },
+            page: true,
+            limit: 10,
+            cols: [[
+                { field: 'AssetNo', title: '资产编号', width: 160 },
+                { field: 'Name', title: '名称', minWidth: 220 },
+                { field: 'TypeName', title: '类型', width: 120 },
+                { field: 'SerialNo', title: 'SN', width: 180 },
+                { field: 'OwnerName', title: '使用人', width: 120 },
+                { field: 'Status', title: '状态', width: 100, templet: function (d) { return assetStatusText(d.Status); } },
+                {
+                    fixed: 'right', title: '操作', width: 90, templet: function (d) {
+                        return '<a class="layui-btn layui-btn-xs" href="javascript:;" onclick="bindAsset(' + d.Id + ')">选择</a>';
+                    }
+                }
+            ]]
+        });
+    });
+}
+
+function assetStatusText(v) {
+    switch (v) {
+        case 1: return '在库';
+        case 2: return '使用中';
+        case 3: return '维修中';
+        case 4: return '已报废';
+        default: return v;
     }
+}
+
+function bindAsset(assetId) {
+    $.post('/Ticket/BindAsset', { ticketId: ticketId, assetId: assetId }, function (res) {
+        if (res.code === 0) {
+            layui.layer.msg('绑定成功', { icon: 1, time: 600 }, function () { location.reload(); });
+        } else {
+            layui.layer.msg(res.msg || '绑定失败', { icon: 5 });
+        }
+    });
+}
 </script>

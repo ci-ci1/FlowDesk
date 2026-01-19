@@ -339,6 +339,21 @@ namespace FlowDesk.Controllers
             ViewBag.IsAdmin = IsAdmin(me.Id);
             ViewBag.CanOperate = CanOperateTicket(ticket, me.Id);
 
+            ViewBag.RelAssets = (from at in db.AssetTickets
+                                 join a in db.Assets on at.AssetId equals a.Id
+                                 join t0 in db.AssetTypes on a.TypeId equals t0.Id into atype
+                                 from ty in atype.DefaultIfEmpty()
+                                 where at.TicketId == id && a.IsDeleted == false
+                                 orderby a.AssetNo
+                                 select new
+                                 {
+                                     a.Id,
+                                     a.AssetNo,
+                                     a.Name,
+                                     TypeName = (ty == null ? "" : ty.Name),
+                                     a.Status
+                                 }).ToList();
+
             return View(vm);
         }
         #endregion
@@ -731,6 +746,107 @@ namespace FlowDesk.Controllers
                 .ToList();
 
             return Json(new { code = 0, data = list }, JsonRequestBehavior.AllowGet);
+        }
+
+        // 搜索资产（用于绑定弹窗）
+        [HttpGet]
+        public ActionResult AssetSearch(string keyword, int page = 1, int limit = 10)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" }, JsonRequestBehavior.AllowGet);
+
+            var q = db.Assets.Where(a => a.IsDeleted == false);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                q = q.Where(a => a.AssetNo.Contains(keyword)
+                              || a.Name.Contains(keyword)
+                              || a.SerialNo.Contains(keyword));
+            }
+
+            var total = q.Count();
+
+            var list = (from a in q
+                        join t0 in db.AssetTypes on a.TypeId equals t0.Id into at
+                        from t in at.DefaultIfEmpty()
+                        join u0 in db.Users on a.OwnerUserId equals u0.Id into ou
+                        from u in ou.DefaultIfEmpty()
+                        orderby a.CreatedAt descending
+                        select new
+                        {
+                            a.Id,
+                            a.AssetNo,
+                            a.Name,
+                            TypeName = (t == null ? "" : t.Name),
+                            a.SerialNo,
+                            a.Status,
+                            OwnerName = (u == null ? "" : u.RealName)
+                        })
+                       .Skip((page - 1) * limit)
+                       .Take(limit)
+                       .ToList();
+
+            return Json(new { code = 0, msg = "", count = total, data = list }, JsonRequestBehavior.AllowGet);
+        }
+
+        // 绑定资产到工单
+        [HttpPost]
+        public ActionResult BindAsset(long ticketId, long assetId)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+
+            var ticket = db.Tickets.FirstOrDefault(t => t.Id == ticketId && t.IsDeleted == false);
+            if (ticket == null) return Json(new { code = 1, msg = "工单不存在" });
+
+            // 权限：管理员或处理人
+            if (!IsAdmin(me.Id) && !CanOperateTicket(ticket, me.Id))
+                return Json(new { code = 1, msg = "无权限绑定资产（仅处理人/管理员）" });
+
+            var asset = db.Assets.FirstOrDefault(a => a.Id == assetId && a.IsDeleted == false);
+            if (asset == null) return Json(new { code = 1, msg = "资产不存在" });
+
+            // 防重复
+            bool exists = db.AssetTickets.Any(x => x.TicketId == ticketId && x.AssetId == assetId);
+            if (exists) return Json(new { code = 0, msg = "已绑定" });
+
+            db.AssetTickets.Add(new AssetTickets
+            {
+                TicketId = ticketId,
+                AssetId = assetId,
+                CreatedAt = DateTime.Now,
+                CreatedBy = me.Id
+            });
+
+            // 可选：写工单流转日志（加分）
+            AddFlowLog(ticketId, ticket.Status, ticket.Status, "BIND_ASSET", me.Id, "绑定资产：" + asset.AssetNo);
+
+            db.SaveChanges();
+            return Json(new { code = 0, msg = "ok" });
+        }
+
+        // 解绑资产
+        [HttpPost]
+        public ActionResult UnbindAsset(long ticketId, long assetId)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+
+            var ticket = db.Tickets.FirstOrDefault(t => t.Id == ticketId && t.IsDeleted == false);
+            if (ticket == null) return Json(new { code = 1, msg = "工单不存在" });
+
+            if (!IsAdmin(me.Id) && !CanOperateTicket(ticket, me.Id))
+                return Json(new { code = 1, msg = "无权限解绑资产（仅处理人/管理员）" });
+
+            var rel = db.AssetTickets.FirstOrDefault(x => x.TicketId == ticketId && x.AssetId == assetId);
+            if (rel == null) return Json(new { code = 0, msg = "不存在绑定关系" });
+
+            db.AssetTickets.Remove(rel);
+
+            AddFlowLog(ticketId, ticket.Status, ticket.Status, "UNBIND_ASSET", me.Id, "解绑资产");
+            db.SaveChanges();
+
+            return Json(new { code = 0, msg = "ok" });
         }
     }
 }

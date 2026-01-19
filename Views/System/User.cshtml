@@ -1,0 +1,106 @@
+﻿@{
+    ViewBag.Title = "用户管理";
+    Layout = null;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">用户管理</blockquote>
+
+    <div class="layui-form layui-card" style="padding:15px;">
+        <div class="layui-row layui-col-space12">
+            <div class="layui-col-md4">
+                <input type="text" id="keyword" placeholder="关键词：用户名/姓名" class="layui-input" />
+            </div>
+            <div class="layui-col-md2">
+                <select id="status">
+                    <option value="">状态(全部)</option>
+                    <option value="1">启用</option>
+                    <option value="0">禁用</option>
+                </select>
+            </div>
+            <div class="layui-col-md6" style="text-align:right;">
+                <button class="layui-btn" id="btnSearch"><i class="layui-icon layui-icon-search"></i> 查询</button>
+            </div>
+        </div>
+    </div>
+
+    <table id="userTable" lay-filter="userTable"></table>
+
+    <script type="text/html" id="opTpl">
+        {{# if(d.Status==1){ }}
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="disable">禁用</a>
+        {{# } else { }}
+        <a class="layui-btn layui-btn-xs" lay-event="enable">启用</a>
+        {{# } }}
+        <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="role">分配角色</a>
+    </script>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['table','layer','form'], function(){
+    var table = layui.table;
+    var layer = layui.layer;
+    var form = layui.form;
+    var $ = layui.$;
+
+    table.render({
+        elem:'#userTable',
+        id:'userTable',
+        url:'/System/UserListJson',
+        method:'get',
+        page:true,
+        limit:10,
+        cols:[[
+            { field:'Id', title:'ID', width:80 },
+            { field:'UserName', title:'用户名', width:180 },
+            { field:'RealName', title:'姓名', width:180 },
+            { field:'Status', title:'状态', width:100, templet:function(d){ return d.Status==1?'启用':'禁用'; } },
+            { fixed:'right', title:'操作', toolbar:'#opTpl', width:220 }
+        ]]
+    });
+
+    $('#btnSearch').on('click', function(){
+        table.reload('userTable', {
+            page:{ curr:1 },
+            where:{
+                keyword: $('#keyword').val(),
+                status: $('#status').val()
+            }
+        });
+    });
+
+    table.on('tool(userTable)', function(obj){
+        var d = obj.data;
+
+        if(obj.event === 'disable'){
+            setStatus(d.Id, 0);
+        }
+        if(obj.event === 'enable'){
+            setStatus(d.Id, 1);
+        }
+        if(obj.event === 'role'){
+            layer.open({
+                type: 2,
+                title: '分配角色 - ' + d.UserName,
+                content: '/System/UserAssignRole?id=' + d.Id,
+                area: ['560px','520px']
+            });
+        }
+    });
+
+    function setStatus(id, status){
+        $.post('/System/UserSetStatus', { id:id, status: status }, function(res){
+            if(res.code===0){
+                layer.msg('操作成功', {icon:1, time:600}, function(){ table.reload('userTable'); });
+            }else{
+                layer.msg(res.msg||'失败', {icon:5});
+            }
+        });
+    }
+});
+</script>

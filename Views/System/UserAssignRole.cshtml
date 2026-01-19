@@ -1,0 +1,58 @@
+﻿@using FlowDesk.Models
+@{
+    ViewBag.Title = "分配角色";
+    Layout = null;
+
+    var user = ViewBag.User as Users;
+    var roles = ViewBag.Roles as System.Collections.Generic.List<FlowDesk.Models.Roles>;
+    var selected = ViewBag.Selected as System.Collections.Generic.List<long>;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">
+        分配角色：@user.RealName (@user.UserName)
+    </blockquote>
+
+    <div class="layui-form" id="roleBox">
+        @if (roles != null)
+        {
+            foreach (var r in roles)
+            {
+                var chk = (selected != null && selected.Contains(r.Id));
+                <input type="checkbox" name="role" value="@r.Id" title="@r.Name (@r.Code)" lay-skin="primary" @(chk ? "checked" : "") />
+                <br />
+            }
+        }
+    </div>
+
+    <button class="layui-btn" style="margin-top:10px;" onclick="save()">保存</button>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['form','layer'], function(){
+    layui.form.render('checkbox');
+});
+
+function save(){
+    var ids = [];
+    $('#roleBox input[name="role"]:checked').each(function(){
+        ids.push($(this).val());
+    });
+
+    $.post('/System/UserAssignRolePost', { userId: @user.Id, roleIds: ids.join(',') }, function(res){
+        if(res.code===0){
+            layui.layer.msg('保存成功', {icon:1, time:600}, function(){
+                var index = parent.layer.getFrameIndex(window.name);
+                parent.layer.close(index);
+            });
+        }else{
+            layui.layer.msg(res.msg||'保存失败', {icon:5});
+        }
+    });
+}
+</script>

@@ -1,0 +1,229 @@
+﻿@using FlowDesk.Models
+@{
+    ViewBag.Title = "资产列表";
+    Layout = null;
+    var types = ViewBag.Types as System.Collections.Generic.List<AssetTypes>;
+    var users = ViewBag.Users as System.Collections.Generic.List<Users>;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">资产列表</blockquote>
+
+    <div class="layui-form layui-card" style="padding:15px;">
+        <div class="layui-row layui-col-space12">
+            <div class="layui-col-md3">
+                <input type="text" id="keyword" placeholder="关键词：资产编号/名称/SN" class="layui-input" />
+            </div>
+
+            <div class="layui-col-md2">
+                <select id="typeId">
+                    <option value="">类型(全部)</option>
+                    @if (types != null)
+                    {
+                        foreach (var t in types)
+                        {
+                            <option value="@t.Id">@t.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="layui-col-md2">
+                <select id="status">
+                    <option value="">状态(全部)</option>
+                    <option value="1">在库</option>
+                    <option value="2">使用中</option>
+                    <option value="3">维修中</option>
+                    <option value="4">已报废</option>
+                </select>
+            </div>
+
+            <div class="layui-col-md2">
+                <select id="ownerUserId">
+                    <option value="">使用人(全部)</option>
+                    <option value="0">未领用(在库)</option>
+                    @if (users != null)
+                    {
+                        foreach (var u in users)
+                        {
+                            <option value="@u.Id">@u.RealName (@u.UserName)</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="layui-col-md3" style="text-align:right;">
+                <button class="layui-btn" id="btnSearch">
+                    <i class="layui-icon layui-icon-search"></i> 查询
+                </button>
+                <a class="layui-btn layui-btn-normal" href="javascript:;" id="btnCreate">
+                    <i class="layui-icon layui-icon-add-1"></i> 资产入库
+                </a>
+            </div>
+        </div>
+
+        <div class="layui-row layui-col-space12" style="margin-top:10px;">
+            <div class="layui-col-md12" style="text-align:right;">
+                <button class="layui-btn layui-btn-primary layui-btn-sm" id="btnExport">
+                    <i class="layui-icon layui-icon-export"></i> 导出
+                </button>
+                <button class="layui-btn layui-btn-primary layui-btn-sm" id="btnTpl">
+                    <i class="layui-icon layui-icon-file"></i> 下载模板
+                </button>
+
+                <button class="layui-btn layui-btn-primary layui-btn-sm" id="btnImport">
+                    <i class="layui-icon layui-icon-upload-drag"></i> 导入
+                </button>
+                <input type="file" id="importFile" accept=".xlsx" style="display:none;" />
+            </div>
+        </div>
+    </div>
+
+    <table id="assetTable" lay-filter="assetTable"></table>
+
+    <script type="text/html" id="opTpl">
+        <a class="layui-btn layui-btn-xs" lay-event="detail">详情</a>
+    </script>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+    layui.use(['table', 'layer', 'form'], function () {
+        var table = layui.table;
+        var layer = layui.layer;
+        var form = layui.form;
+        var $ = layui.$;
+
+        function buildQuery() {
+            return {
+                keyword: $('#keyword').val(),
+                typeId: $('#typeId').val(),
+                status: $('#status').val(),
+                ownerUserId: $('#ownerUserId').val()
+            };
+        }
+
+        table.render({
+            elem: '#assetTable',
+            id: 'assetTable',
+            url: '/Asset/ListJson',
+            method: 'get',
+            page: true,
+            limit: 10,
+            cols: [[
+                { field: 'AssetNo', title: '资产编号', width: 160 },
+                { field: 'Name', title: '名称', minWidth: 200 },
+                { field: 'TypeName', title: '类型', width: 120 },
+                { field: 'Brand', title: '品牌', width: 120 },
+                { field: 'Model', title: '型号', width: 120 },
+                { field: 'SerialNo', title: 'SN', width: 180 },
+                { field: 'Status', title: '状态', width: 100, templet: function (d) { return statusText(d.Status); } },
+                { field: 'OwnerName', title: '使用人', width: 120 },
+                { field: 'Location', title: '位置', width: 140 },
+                { fixed: 'right', title: '操作', toolbar: '#opTpl', width: 80 }
+            ]]
+        });
+
+        $('#btnSearch').on('click', function () {
+            table.reload('assetTable', { page: { curr: 1 }, where: buildQuery() });
+        });
+
+        $('#btnCreate').on('click', function () {
+            if (window.parent && window.parent.openPage) window.parent.openPage('/Asset/Create');
+            else window.location.href = '/Asset/Create';
+        });
+
+        // 导出（按当前筛选）
+        $('#btnExport').on('click', function () {
+            var q = buildQuery();
+            var url = '/Asset/Export?keyword=' + encodeURIComponent(q.keyword || '')
+                + '&typeId=' + encodeURIComponent(q.typeId || '')
+                + '&status=' + encodeURIComponent(q.status || '')
+                + '&ownerUserId=' + encodeURIComponent(q.ownerUserId || '');
+            window.open(url);
+        });
+
+        // 下载模板
+        $('#btnTpl').on('click', function () {
+            window.open('/Asset/ImportTemplate');
+        });
+
+        // 导入
+        $('#btnImport').on('click', function () {
+            $('#importFile').val('');
+            $('#importFile').click();
+        });
+
+        $('#importFile').on('change', function () {
+            var f = this.files[0];
+            if (!f) return;
+
+            var fd = new FormData();
+            fd.append('file', f);
+
+            $.ajax({
+                url: '/Asset/Import',
+                type: 'post',
+                data: fd,
+                processData: false,
+                contentType: false,
+                success: function (res) {
+                    if (res.code === 0) {
+                        layer.msg('导入成功，新增：' + (res.data ? res.data.success : 0), { icon: 1, time: 1200 }, function () {
+                            table.reload('assetTable');
+                        });
+                    } else {
+                        // 显示错误明细（如果后端返回 errors）
+                        if (res.data && res.data.errors) {
+                            var html = '<div style="padding:10px;max-height:360px;overflow:auto;">'
+                                + '<ol>';
+                            res.data.errors.forEach(function (e) { html += '<li>' + e + '</li>'; });
+                            html += '</ol></div>';
+
+                            layer.open({
+                                type: 1,
+                                title: res.msg || '导入失败',
+                                area: ['720px', '420px'],
+                                content: html
+                            });
+                        } else {
+                            layer.msg(res.msg || '导入失败', { icon: 5 });
+                        }
+                    }
+                },
+                error: function () {
+                    layer.msg('网络错误', { icon: 5 });
+                }
+            });
+        });
+
+        table.on('tool(assetTable)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'detail') {
+                layer.open({
+                    type: 2,
+                    title: '资产详情 - ' + data.AssetNo,
+                    content: '/Asset/Detail?id=' + data.Id,
+                    area: ['1000px', '650px'],
+                    end: function () {
+                        table.reload('assetTable');
+                    }
+                });
+            }
+        });
+
+        function statusText(v) {
+            switch (v) {
+                case 1: return '在库';
+                case 2: return '使用中';
+                case 3: return '维修中';
+                case 4: return '已报废';
+                default: return v;
+            }
+        }
+    });
+</script>

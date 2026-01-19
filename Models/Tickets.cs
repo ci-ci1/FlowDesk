@@ -20,6 +20,7 @@ namespace FlowDesk.Models
             this.TicketAttachments = new HashSet<TicketAttachments>();
             this.TicketComments = new HashSet<TicketComments>();
             this.TicketFlowLogs = new HashSet<TicketFlowLogs>();
+            this.AssetTickets = new HashSet<AssetTickets>();
         }
     
         public long Id { get; set; }
@@ -45,5 +46,7 @@ namespace FlowDesk.Models
         public virtual ICollection<TicketComments> TicketComments { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<TicketFlowLogs> TicketFlowLogs { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<AssetTickets> AssetTickets { get; set; }
     }
 }

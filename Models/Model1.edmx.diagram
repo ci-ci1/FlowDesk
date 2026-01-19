@@ -25,6 +25,14 @@
         <AssociationConnector Association="FlowDeskModel.FK_TicketComments_Users" />
         <AssociationConnector Association="FlowDeskModel.FK_TicketFlowLogs_Tickets" />
         <AssociationConnector Association="FlowDeskModel.FK_TicketFlowLogs_Users" />
+        <EntityTypeShape EntityType="FlowDeskModel.AssetOpLogs" Width="1.5" PointX="5" PointY="0.75" />
+        <EntityTypeShape EntityType="FlowDeskModel.Assets" Width="1.5" PointX="2.75" PointY="18" />
+        <EntityTypeShape EntityType="FlowDeskModel.AssetTypes" Width="1.5" PointX="8.375" PointY="11.5" />
+        <AssociationConnector Association="FlowDeskModel.FK_AssetOpLogs_Assets" />
+        <AssociationConnector Association="FlowDeskModel.FK_AssetOpLogs_Users" />
+        <EntityTypeShape EntityType="FlowDeskModel.AssetTickets" Width="1.5" PointX="5" PointY="14.5" />
+        <AssociationConnector Association="FlowDeskModel.FK_AssetTickets_Assets" />
+        <AssociationConnector Association="FlowDeskModel.FK_AssetTickets_Tickets" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>
