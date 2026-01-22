@@ -1,0 +1,204 @@
+﻿@{
+    ViewBag.Title = "菜单管理（树状）";
+    Layout = null;
+}
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">菜单管理（后端递归树 + 表格展示）</blockquote>
+
+    <div class="layui-card" style="padding:15px;">
+        <button class="layui-btn layui-btn-normal" id="btnCreateRoot">
+            <i class="layui-icon layui-icon-add-1"></i> 新增目录
+        </button>
+        <button class="layui-btn layui-btn-primary" id="btnReload">
+            <i class="layui-icon layui-icon-refresh"></i> 刷新
+        </button>
+    </div>
+
+    <table class="layui-table">
+        <thead>
+            <tr>
+                <th style="width:80px;">ID</th>
+                <th style="width:80px;">类型</th>
+                <th>名称</th>
+                <th style="width:260px;">Url</th>
+                <th style="width:160px;">Icon</th>
+                <th style="width:80px;">排序</th>
+                <th style="width:80px;">显示</th>
+                <th style="width:80px;">状态</th>
+                <th style="width:280px;">操作</th>
+            </tr>
+        </thead>
+        <tbody id="menuBody">
+            <tr><td colspan="9" style="color:#999;">加载中...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+    layui.use(['layer'], function () {
+        var layer = layui.layer;
+        var $ = layui.$;
+
+        function typeText(t) { return t == 1 ? '目录' : '菜单'; }
+        function statusText(s) { return s == 1 ? '启用' : '禁用'; }
+
+        function render() {
+            $.get('/System/MenuTreeListJson', function (res) {
+                if (res.code !== 0) {
+                    layer.msg(res.msg || '加载失败', { icon: 5 });
+                    return;
+                }
+
+                var list = res.data || [];
+                var html = '';
+
+                list.forEach(function (m) {
+                    var indent = m.Level * 18; // 缩进像树
+                    var toggle = '';
+                    if (m.MenuType == 1 && m.HasChildren) {
+                        toggle = '<i class="layui-icon layui-icon-triangle-r toggle" data-id="' + m.Id + '" style="cursor:pointer;margin-right:6px;"></i>';
+                    } else if (m.Level > 0) {
+                        toggle = '<span style="display:inline-block;width:18px;"></span>';
+                    }
+
+                    var rowStyle = (m.Level > 0) ? ' style="display:none;"' : '';
+                    html += '<tr class="row" data-id="' + m.Id + '" data-pid="' + m.ParentId + '" data-level="' + m.Level + '"' + rowStyle + '>'
+                        + '<td>' + m.Id + '</td>'
+                        + '<td>' + typeText(m.MenuType) + '</td>'
+                        + '<td>'
+                        + '<span style="padding-left:' + indent + 'px;"></span>'
+                        + toggle
+                        + escapeHtml(m.Name)
+                        + '</td>'
+                        + '<td>' + escapeHtml(m.Url || '') + '</td>'
+                        + '<td>' + escapeHtml(m.Icon || '') + '</td>'
+                        + '<td>' + (m.Sort || 0) + '</td>'
+                        + '<td>' + (m.IsVisible ? '是' : '否') + '</td>'
+                        + '<td>' + statusText(m.Status) + '</td>'
+                        + '<td>'
+                        + '<a class="layui-btn layui-btn-normal layui-btn-xs" href="javascript:;" onclick="edit(' + m.Id + ')">编辑</a> '
+                        + (m.Status == 1
+                            ? '<a class="layui-btn layui-btn-danger layui-btn-xs" href="javascript:;" onclick="setStatus(' + m.Id + ',0)">禁用</a> '
+                            : '<a class="layui-btn layui-btn-xs" href="javascript:;" onclick="setStatus(' + m.Id + ',1)">启用</a> ')
+                        + (m.MenuType == 1
+                            ? '<a class="layui-btn layui-btn-warm layui-btn-xs" href="javascript:;" onclick="addChild(' + m.Id + ')">新增子菜单</a> '
+                            : '')
+                        + '<a class="layui-btn layui-btn-danger layui-btn-xs" href="javascript:;" onclick="del(' + m.Id + ')">删除</a>'
+                        + '</td>'
+                        + '</tr>';
+                });
+
+                $('#menuBody').html(html || '<tr><td colspan="9" style="color:#999;">暂无数据</td></tr>');
+
+                // 默认：把二级先显示（也可以默认隐藏）
+                // 绑定展开折叠
+                bindToggle();
+            });
+        }
+
+        function bindToggle() {
+            $('.toggle').off('click').on('click', function () {
+                var id = $(this).data('id');
+                var isOpen = $(this).hasClass('open');
+
+                if (isOpen) {
+                    $(this).removeClass('open').removeClass('layui-icon-triangle-d').addClass('layui-icon-triangle-r');
+                    hideChildren(id);
+                } else {
+                    $(this).addClass('open').removeClass('layui-icon-triangle-r').addClass('layui-icon-triangle-d');
+                    showChildren(id);
+                }
+            });
+
+            
+        }
+
+        function hideChildren(pid) {
+            $('tr.row[data-pid="' + pid + '"]').each(function () {
+                var cid = $(this).data('id');
+                $(this).hide();
+                // 递归隐藏孙子（以后多级也支持）
+                hideChildren(cid);
+                // 同时把子节点 toggle 置为收起图标
+                $('.toggle[data-id="' + cid + '"]').removeClass('open').removeClass('layui-icon-triangle-d').addClass('layui-icon-triangle-r');
+            });
+        }
+
+        function showChildren(pid) {
+            $('tr.row[data-pid="' + pid + '"]').each(function () {
+                $(this).show();
+                var cid = $(this).data('id');
+                // 如果该子节点本身是收起状态，就不要展开更深层
+                var $t = $('.toggle[data-id="' + cid + '"]');
+                if ($t.length && $t.hasClass('open')) {
+                    showChildren(cid);
+                }
+            });
+        }
+
+        function escapeHtml(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        window.edit = function (id) {
+            layer.open({
+                type: 2,
+                title: '编辑菜单',
+                content: '/System/MenuEdit?id=' + id,
+                area: ['760px', '560px'],
+                offset: 'auto',
+                end: render
+            });
+        };
+
+        window.addChild = function (pid) {
+            layer.open({
+                type: 2,
+                title: '新增子菜单',
+                content: '/System/MenuCreate?parentId=' + pid + '&menuType=2',
+                area: ['760px', '560px'],
+                offset: 'auto',
+                end: render
+            });
+        };
+
+        window.setStatus = function (id, status) {
+            $.post('/System/MenuSetStatus', { id: id, status: status }, function (res) {
+                if (res.code === 0) { layer.msg('操作成功', { icon: 1, time: 600 }, render); }
+                else layer.msg(res.msg || '失败', { icon: 5 });
+            });
+        };
+
+        window.del = function (id) {
+            layer.confirm('确定删除该菜单吗？', { icon: 3, title: '删除确认' }, function (i) {
+                layer.close(i);
+                $.post('/System/MenuDelete', { id: id }, function (res) {
+                    if (res.code === 0) { layer.msg('已删除', { icon: 1, time: 600 }, render); }
+                    else layer.msg(res.msg || '删除失败', { icon: 5 });
+                });
+            });
+        };
+
+        $('#btnCreateRoot').on('click', function () {
+            layer.open({
+                type: 2,
+                title: '新增目录',
+                content: '/System/MenuCreate?parentId=0&menuType=1',
+                area: ['760px', '560px'],
+                offset: 'auto',
+                end: render
+            });
+        });
+
+        $('#btnReload').on('click', render);
+
+        render();
+    });
+</script>

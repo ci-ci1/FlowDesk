@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Web.Mvc;
+using FlowDesk.Services;
 
 namespace FlowDesk.Controllers
 {
@@ -13,6 +14,7 @@ namespace FlowDesk.Controllers
     public class TicketController : Controller
     {
         private readonly FlowDeskEntities db = new FlowDeskEntities();
+        private string J(object obj) => new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(obj);
 
         #region 工单列表页
         public ActionResult Index()
@@ -181,9 +183,14 @@ namespace FlowDesk.Controllers
                     };
 
                     db.Tickets.Add(ticket);
+
                     db.SaveChanges();
 
                     AddFlowLog(ticket.Id, null, (byte)1, "CREATE", me.Id, "创建工单");
+
+                    AuditService.Add(db, "Ticket", ticket.Id, "CREATE", me,
+    "创建工单：" + ticket.Code + "；标题：" + ticket.Title);
+
                     db.SaveChanges();
 
                     tx.Commit();
@@ -379,6 +386,9 @@ namespace FlowDesk.Controllers
                 CreatedAt = DateTime.Now
             });
 
+            AuditService.Add(db, "Ticket", ticket.Id, "COMMENT", me,
+    "评论工单：" + ticket.Code + "；内容：" + (content.Length > 50 ? content.Substring(0, 50) + "..." : content));
+
             db.SaveChanges();
             return Json(new { code = 0, msg = "ok" });
         }
@@ -416,9 +426,30 @@ namespace FlowDesk.Controllers
             if (ticket == null) return Json(new { code = 1, msg = "工单不存在" });
 
             var from = ticket.Status;
+            var beforeJson = J(new
+            {
+                ticket.Id,
+                ticket.Code,
+                Status = ticket.Status,
+                AssigneeId = ticket.AssigneeId
+            });
             ticket.AssigneeId = assigneeId;
 
             AddFlowLog(ticket.Id, from, ticket.Status, "ASSIGN", me.Id, "指派处理人");
+            AuditService.Add(db, "Ticket", ticket.Id, "ASSIGN", me,
+    "指派工单：" + ticket.Code + "；AssigneeId=" + assigneeId);
+            var afterJson = J(new
+            {
+                ticket.Id,
+                ticket.Code,
+                Status = ticket.Status,
+                AssigneeId = ticket.AssigneeId
+            });
+
+            AuditService.Add(db, "Ticket", ticket.Id, "ASSIGN", me,
+                "指派工单：" + ticket.Code + "；AssigneeId=" + assigneeId,
+                beforeJson: beforeJson,
+                afterJson: afterJson);
             db.SaveChanges();
 
             return Json(new { code = 0, msg = "ok" });
@@ -451,6 +482,10 @@ namespace FlowDesk.Controllers
             ticket.AcceptedAt = DateTime.Now;
 
             AddFlowLog(ticket.Id, from, ticket.Status, "ACCEPT", me.Id, "受理工单");
+
+            AuditService.Add(db, "Ticket", ticket.Id, "ACCEPT", me,
+    "受理工单：" + ticket.Code);
+
             db.SaveChanges();
 
             return Json(new { code = 0, msg = "ok" });
@@ -475,6 +510,10 @@ namespace FlowDesk.Controllers
             ticket.Status = (byte)3;
 
             AddFlowLog(ticket.Id, from, ticket.Status, "PROCESS", me.Id, "开始处理");
+
+            AuditService.Add(db, "Ticket", ticket.Id, "PROCESS", me,
+    "开始处理工单：" + ticket.Code);
+
             db.SaveChanges();
 
             return Json(new { code = 0, msg = "ok" });
@@ -496,11 +535,35 @@ namespace FlowDesk.Controllers
                 return Json(new { code = 1, msg = "无权限操作（仅处理人/管理员）" });
 
             var from = ticket.Status;
+            var beforeJson = J(new
+            {
+                ticket.Id,
+                ticket.Code,
+                Status = ticket.Status,
+                AssigneeId = ticket.AssigneeId,
+                ResolvedAt = ticket.ResolvedAt
+            });
             ticket.Status = (byte)5;
             ticket.ResolvedAt = DateTime.Now;
 
             AddFlowLog(ticket.Id, from, ticket.Status, "DONE", me.Id,
                 string.IsNullOrWhiteSpace(remark) ? "完成工单" : remark.Trim());
+
+            AuditService.Add(db, "Ticket", ticket.Id, "DONE", me,
+    "完成工单：" + ticket.Code + "；备注：" + (string.IsNullOrWhiteSpace(remark) ? "-" : remark.Trim()));
+            var afterJson = J(new
+            {
+                ticket.Id,
+                ticket.Code,
+                Status = ticket.Status,
+                AssigneeId = ticket.AssigneeId,
+                ResolvedAt = ticket.ResolvedAt
+            });
+
+            AuditService.Add(db, "Ticket", ticket.Id, "DONE", me,
+                "完成工单：" + ticket.Code + "；备注：" + (string.IsNullOrWhiteSpace(remark) ? "-" : remark.Trim()),
+                beforeJson: beforeJson,
+                afterJson: afterJson);
 
             db.SaveChanges();
             return Json(new { code = 0, msg = "ok" });
@@ -522,11 +585,36 @@ namespace FlowDesk.Controllers
                 return Json(new { code = 1, msg = "无权限关闭（仅处理人/管理员）" });
 
             var from = ticket.Status;
+            var beforeJson = J(new
+            {
+                ticket.Id,
+                ticket.Code,
+                Status = ticket.Status,
+                AssigneeId = ticket.AssigneeId,
+                ClosedAt = ticket.ClosedAt
+            });
             ticket.Status = (byte)6;
             ticket.ClosedAt = DateTime.Now;
 
             AddFlowLog(ticket.Id, from, ticket.Status, "CLOSE", me.Id,
                 string.IsNullOrWhiteSpace(remark) ? "关闭工单" : remark.Trim());
+
+            // ✅ 写审计（注意：在 SaveChanges 前）
+            AuditService.Add(db, "Ticket", ticket.Id, "CLOSE", me,
+                "关闭工单：" + ticket.Code + "；原因：" + (string.IsNullOrWhiteSpace(remark) ? "-" : remark.Trim()));
+            var afterJson = J(new
+            {
+                ticket.Id,
+                ticket.Code,
+                Status = ticket.Status,
+                AssigneeId = ticket.AssigneeId,
+                ClosedAt = ticket.ClosedAt
+            });
+
+            AuditService.Add(db, "Ticket", ticket.Id, "CLOSE", me,
+                "关闭工单：" + ticket.Code + "；原因：" + (string.IsNullOrWhiteSpace(remark) ? "-" : remark.Trim()),
+                beforeJson: beforeJson,
+                afterJson: afterJson);
 
             db.SaveChanges();
             return Json(new { code = 0, msg = "ok" });
@@ -645,6 +733,9 @@ namespace FlowDesk.Controllers
             // 可选：写流转日志（简历加分）
             AddFlowLog(ticketId, ticket.Status, ticket.Status, "UPLOAD", me.Id, "上传附件：" + safeName);
 
+            AuditService.Add(db, "Ticket", ticketId, "UPLOAD_FILE", me,
+    "上传附件：" + safeName + "；工单Id=" + ticketId);
+
             db.SaveChanges();
 
             return Json(new { code = 0, msg = "ok" });
@@ -720,6 +811,9 @@ namespace FlowDesk.Controllers
             att.IsDeleted = true;
 
             AddFlowLog(ticket.Id, ticket.Status, ticket.Status, "DEL_FILE", me.Id, "删除附件：" + att.FileName);
+
+            AuditService.Add(db, "Ticket", att.TicketId, "DEL_FILE", me,
+    "删除附件：" + att.FileName + "；附件Id=" + att.Id);
 
             db.SaveChanges();
             return Json(new { code = 0, msg = "ok" });
@@ -821,6 +915,9 @@ namespace FlowDesk.Controllers
             // 可选：写工单流转日志（加分）
             AddFlowLog(ticketId, ticket.Status, ticket.Status, "BIND_ASSET", me.Id, "绑定资产：" + asset.AssetNo);
 
+            AuditService.Add(db, "Ticket", ticketId, "BIND_ASSET", me,
+    "绑定资产到工单：" + ticket.Code + "；AssetId=" + assetId + "；AssetNo=" + asset.AssetNo);
+
             db.SaveChanges();
             return Json(new { code = 0, msg = "ok" });
         }
@@ -844,6 +941,10 @@ namespace FlowDesk.Controllers
             db.AssetTickets.Remove(rel);
 
             AddFlowLog(ticketId, ticket.Status, ticket.Status, "UNBIND_ASSET", me.Id, "解绑资产");
+
+            AuditService.Add(db, "Ticket", ticketId, "UNBIND_ASSET", me,
+    "解绑工单资产关系：" + ticket.Code + "；AssetId=" + assetId);
+
             db.SaveChanges();
 
             return Json(new { code = 0, msg = "ok" });

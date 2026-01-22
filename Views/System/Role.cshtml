@@ -1,0 +1,125 @@
+﻿@{
+    ViewBag.Title = "角色管理";
+    Layout = null;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">角色管理</blockquote>
+
+    <div class="layui-form layui-card" style="padding:15px;">
+        <div class="layui-row layui-col-space12">
+            <div class="layui-col-md4">
+                <input type="text" id="keyword" placeholder="关键词：Code/Name" class="layui-input" />
+            </div>
+            <div class="layui-col-md2">
+                <select id="status">
+                    <option value="">状态(全部)</option>
+                    <option value="1">启用</option>
+                    <option value="0">禁用</option>
+                </select>
+            </div>
+            <div class="layui-col-md6" style="text-align:right;">
+                <button class="layui-btn" id="btnSearch"><i class="layui-icon layui-icon-search"></i> 查询</button>
+                <button class="layui-btn layui-btn-normal" id="btnCreate"><i class="layui-icon layui-icon-add-1"></i> 新增角色</button>
+                <button class="layui-btn layui-btn-primary" id="btnGoRoleMenu">角色授权菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <table id="roleTable" lay-filter="roleTable"></table>
+
+    <script type="text/html" id="opTpl">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+        {{# if(d.Status==1){ }}
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="disable">禁用</a>
+        {{# } else { }}
+        <a class="layui-btn layui-btn-xs" lay-event="enable">启用</a>
+        {{# } }}
+    </script>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['table','layer','form'], function(){
+    var table = layui.table;
+    var layer = layui.layer;
+    var form = layui.form;
+    var $ = layui.$;
+
+    table.render({
+        elem:'#roleTable',
+        id:'roleTable',
+        url:'/System/RoleListJson',
+        method:'get',
+        page:true,
+        limit:10,
+        cols:[[
+            { field:'Id', title:'ID', width:80 },
+            { field:'Code', title:'Code', width:160 },
+            { field:'Name', title:'Name', width:180 },
+            { field:'Status', title:'状态', width:100, templet:function(d){ return d.Status==1?'启用':'禁用'; } },
+            { field:'Remark', title:'备注', minWidth:200 },
+            { fixed:'right', title:'操作', toolbar:'#opTpl', width:220 }
+        ]]
+    });
+
+    $('#btnSearch').on('click', function(){
+        table.reload('roleTable', {
+            page:{ curr:1 },
+            where:{
+                keyword: $('#keyword').val(),
+                status: $('#status').val()
+            }
+        });
+    });
+
+    $('#btnCreate').on('click', function(){
+        layer.open({
+            type: 2,
+            title: '新增角色',
+            content: '/System/RoleCreate',
+            area: ['560px','420px'],
+            end: function(){ table.reload('roleTable'); }
+        });
+    });
+
+    $('#btnGoRoleMenu').on('click', function(){
+        if(window.parent && window.parent.openPage) window.parent.openPage('/System/RoleMenu');
+        else window.location.href='/System/RoleMenu';
+    });
+
+    table.on('tool(roleTable)', function(obj){
+        var d = obj.data;
+
+        if(obj.event === 'edit'){
+            layer.open({
+                type: 2,
+                title: '编辑角色 - ' + d.Code,
+                content: '/System/RoleEdit?id=' + d.Id,
+                area: ['560px','420px'],
+                end: function(){ table.reload('roleTable'); }
+            });
+        }
+        if(obj.event === 'disable'){
+            setStatus(d.Id, 0);
+        }
+        if(obj.event === 'enable'){
+            setStatus(d.Id, 1);
+        }
+    });
+
+    function setStatus(id, status){
+        $.post('/System/RoleSetStatus', { id:id, status:status }, function(res){
+            if(res.code===0){
+                layer.msg('操作成功', {icon:1, time:600}, function(){ table.reload('roleTable'); });
+            }else{
+                layer.msg(res.msg||'失败', {icon:5});
+            }
+        });
+    }
+});
+</script>

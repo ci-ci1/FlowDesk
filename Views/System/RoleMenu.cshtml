@@ -1,0 +1,140 @@
+﻿@{
+    ViewBag.Title = "角色授权菜单";
+    Layout = null;
+
+    var roles = ViewBag.Roles as System.Collections.Generic.List<FlowDesk.Models.Roles>;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">角色授权菜单</blockquote>
+
+    <div class="layui-card" style="padding:15px;">
+        <div class="layui-form">
+            <div class="layui-inline" style="width:360px;">
+                <label class="layui-form-label">角色</label>
+                <div class="layui-input-block">
+                    <select id="roleId">
+                        @if (roles != null)
+                        {
+                            foreach (var r in roles)
+                            {
+                                <option value="@r.Id">@r.Name (@r.Code)</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="layui-inline">
+                <button class="layui-btn" id="btnSave">
+                    <i class="layui-icon layui-icon-ok"></i> 保存授权
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-card" style="padding:15px;margin-top:10px;">
+        <div id="menuBox" class="layui-form"></div>
+        <div class="layui-text" style="color:#999;margin-top:10px;">
+            说明：勾选目录会自动勾选其子菜单；取消子菜单会自动取消目录勾选。
+        </div>
+    </div>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['form','layer'], function(){
+    var form = layui.form;
+    var layer = layui.layer;
+    var $ = layui.$;
+
+    form.render();
+
+    function load(roleId){
+        $.get('/System/RoleMenuData', { roleId: roleId }, function(res){
+            if(res.code !== 0){
+                layer.msg(res.msg || '加载失败', {icon:5});
+                return;
+            }
+
+            var menus = res.data.menus || [];
+            var selected = new Set(res.data.selectedIds || []);
+
+            var roots = menus.filter(function(m){ return m.ParentId === 0 && m.MenuType === 1; });
+
+            var html = '';
+            roots.forEach(function(root){
+                var children = menus.filter(function(m){ return m.ParentId === root.Id && m.MenuType === 2; });
+
+                html += '<div style="margin-bottom:12px;padding:10px;border:1px solid #eee;">';
+                html += '  <div style="margin-bottom:8px;">'
+                     + '    <input type="checkbox" class="chk-root" data-id="'+root.Id+'" title="'+root.Name+'" '
+                     +      (selected.has(root.Id) ? 'checked' : '')
+                     + '    lay-skin="primary" />'
+                     + '  </div>';
+
+                if(children.length>0){
+                    html += '  <div style="padding-left:22px;">';
+                    children.forEach(function(ch){
+                        html += '<input type="checkbox" class="chk-menu" data-parent="'+root.Id+'" data-id="'+ch.Id+'" title="'+ch.Name+'" '
+                             + (selected.has(ch.Id) ? 'checked' : '')
+                             + ' lay-skin="primary" /> ';
+                    });
+                    html += '  </div>';
+                }
+
+                html += '</div>';
+            });
+
+            $('#menuBox').html(html);
+            form.render('checkbox');
+
+            // 父子联动
+            $('.chk-root').off('change').on('change', function(){
+                var id = $(this).data('id');
+                var checked = $(this).prop('checked');
+                $('.chk-menu[data-parent="'+id+'"]').prop('checked', checked);
+                form.render('checkbox');
+            });
+
+            $('.chk-menu').off('change').on('change', function(){
+                var pid = $(this).data('parent');
+                var anyChecked = $('.chk-menu[data-parent="'+pid+'"]:checked').length > 0;
+                $('.chk-root[data-id="'+pid+'"]').prop('checked', anyChecked);
+                form.render('checkbox');
+            });
+        });
+    }
+
+    // 初次加载
+    var rid = $('#roleId').val();
+    load(rid);
+
+    // 切换角色
+    $('#roleId').on('change', function(){
+        load($(this).val());
+    });
+
+    // 保存
+    $('#btnSave').on('click', function(){
+        var roleId = $('#roleId').val();
+        var ids = [];
+
+        $('#menuBox input[type="checkbox"]:checked').each(function(){
+            ids.push($(this).data('id'));
+        });
+
+        $.post('/System/SaveRoleMenu', { roleId: roleId, menuIds: ids.join(',') }, function(res){
+            if(res.code === 0){
+                layer.msg('保存成功', {icon:1});
+            }else{
+                layer.msg(res.msg || '保存失败', {icon:5});
+            }
+        });
+    });
+});
+</script>

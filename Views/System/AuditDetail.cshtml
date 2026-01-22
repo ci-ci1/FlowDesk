@@ -1,0 +1,60 @@
+﻿@model FlowDesk.Models.AuditLogs
+@{
+    ViewBag.Title = "审计详情";
+    Layout = null;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">审计详情 #@Model.Id</blockquote>
+
+    <div class="layui-card">
+        <div class="layui-card-body">
+            <div><b>时间：</b>@Model.CreatedAt</div>
+            <div style="margin-top:6px;"><b>模块：</b>@Model.BizType</div>
+            <div style="margin-top:6px;"><b>动作：</b>@Model.Action</div>
+            <div style="margin-top:6px;"><b>BizId：</b>@(Model.BizId?.ToString() ?? "-")</div>
+            <div style="margin-top:6px;"><b>操作人：</b>@Model.OperatorName</div>
+            <div style="margin-top:6px;"><b>备注：</b>@Model.Remark</div>
+        </div>
+    </div>
+
+    <div class="layui-row layui-col-space15" style="margin-top:10px;">
+        <div class="layui-col-md6">
+            <div class="layui-card">
+                <div class="layui-card-header">
+                    BeforeJson
+                    <button class="layui-btn layui-btn-xs layui-btn-primary" style="float:right;margin-top:8px;" onclick="copyText('before')">复制</button>
+                </div>
+                <div class="layui-card-body">
+                    <textarea id="before" class="layui-textarea" style="min-height:320px;" readonly>@Model.BeforeJson</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-col-md6">
+            <div class="layui-card">
+                <div class="layui-card-header">
+                    AfterJson
+                    <button class="layui-btn layui-btn-xs layui-btn-primary" style="float:right;margin-top:8px;" onclick="copyText('after')">复制</button>
+                </div>
+                <div class="layui-card-body">
+                    <textarea id="after" class="layui-textarea" style="min-height:320px;" readonly>@Model.AfterJson</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+function copyText(id){
+    var el = document.getElementById(id);
+    el.select();
+    document.execCommand('copy');
+    layui.layer.msg('已复制', {icon:1, time:600});
+}
+</script>

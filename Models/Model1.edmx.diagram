@@ -33,6 +33,7 @@
         <EntityTypeShape EntityType="FlowDeskModel.AssetTickets" Width="1.5" PointX="5" PointY="14.5" />
         <AssociationConnector Association="FlowDeskModel.FK_AssetTickets_Assets" />
         <AssociationConnector Association="FlowDeskModel.FK_AssetTickets_Tickets" />
+        <EntityTypeShape EntityType="FlowDeskModel.AuditLogs" Width="1.5" PointX="8.375" PointY="7.75" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

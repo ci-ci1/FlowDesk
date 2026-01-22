@@ -1,0 +1,178 @@
+﻿@{
+    ViewBag.Title = "审计日志";
+    Layout = null; // iframe 页面
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">审计日志</blockquote>
+
+    <div class="layui-form layui-card" style="padding:15px;">
+        <div class="layui-row layui-col-space12">
+            <div class="layui-col-md2">
+                <select id="bizType">
+                    <option value="">模块(全部)</option>
+                    <option value="Ticket">工单</option>
+                    <option value="Asset">资产</option>
+                    <option value="User">用户</option>
+                    <option value="Role">角色</option>
+                    <option value="MenuAuth">菜单授权</option>
+                </select>
+            </div>
+
+            <div class="layui-col-md2">
+                <input type="text" id="act" placeholder="动作关键字，如 CLOSE/IMPORT" class="layui-input" />
+            </div>
+
+            <div class="layui-col-md3">
+                <input type="text" id="keyword" placeholder="关键词：操作人/备注" class="layui-input" />
+            </div>
+
+            <div class="layui-col-md2">
+                <input type="text" id="from" placeholder="开始时间" class="layui-input" />
+            </div>
+
+            <div class="layui-col-md2">
+                <input type="text" id="to" placeholder="结束时间" class="layui-input" />
+            </div>
+
+            <div class="layui-col-md1" style="text-align:right;">
+                <button class="layui-btn" id="btnSearch">
+                    <i class="layui-icon layui-icon-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <table id="auditTable" lay-filter="auditTable"></table>
+
+    <!-- 模块显示模板 -->
+    <script type="text/html" id="bizTpl">
+        {{#
+          var m = d.BizType;
+          var map = { Ticket:'工单', Asset:'资产', User:'用户', Role:'角色', MenuAuth:'菜单授权' };
+        }}
+        {{ map[m] || m }}
+    </script>
+
+    <!-- BizId 点击模板 -->
+    <script type="text/html" id="bizIdTpl">
+        {{# if(d.BizId){ }}
+        <a href="javascript:;" lay-event="gotoBiz">{{ d.BizId }}</a>
+        {{# } else { }}
+        -
+        {{# } }}
+    </script>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script type="text/html" id="opTpl">
+    <a class="layui-btn layui-btn-xs" lay-event="detail">详情</a>
+</script>
+<script>
+    layui.use(['table', 'form', 'laydate', 'layer'], function () {
+        var table = layui.table;
+        var laydate = layui.laydate;
+        var layer = layui.layer;
+        var $ = layui.$;
+
+        laydate.render({ elem: '#from', type: 'datetime' });
+        laydate.render({ elem: '#to', type: 'datetime' });
+
+        table.render({
+            elem: '#auditTable',
+            id: 'auditTable',
+            url: '/System/AuditListJson',
+            method: 'get',
+            page: true,
+            limit: 20,
+            cols: [[
+                { field: 'CreatedAt', title: '时间', width: 180, templet: function (d) { return formatTime(d.CreatedAt); } },
+                { field: 'BizType', title: '模块', width: 110, templet: '#bizTpl' },
+                { field: 'Action', title: '动作', width: 140 },
+                { field: 'BizId', title: 'BizId', width: 90, templet: '#bizIdTpl' },
+                { field: 'OperatorName', title: '操作人', width: 180 },
+                { field: 'Remark', title: '备注', minWidth: 260 },
+                { fixed: 'right', title: '操作', width: 80, toolbar: '#opTpl' }
+            ]]
+        });
+
+        $('#btnSearch').on('click', function () {
+            table.reload('auditTable', {
+                page: { curr: 1 },
+                where: {
+                    bizType: $('#bizType').val(),
+                    act: $.trim($('#act').val()),
+                    keyword: $.trim($('#keyword').val()),
+                    from: $('#from').val(),
+                    to: $('#to').val()
+                }
+            });
+        });
+
+        table.on('tool(auditTable)', function (obj) {
+            var d = obj.data;
+
+            // 1) 审计详情
+            if (obj.event === 'detail') {
+                layer.open({
+                    type: 2,
+                    title: '审计详情',
+                    content: '/System/AuditDetail?id=' + d.Id,
+                    area: ['1000px', '650px']
+                });
+                return;
+            }
+
+            // 2) 点击 BizId 跳业务详情
+            if (obj.event === 'gotoBiz') {
+
+                if (!d.BizId) {
+                    layer.msg('无业务ID', { icon: 0 });
+                    return;
+                }
+
+                if (d.BizType === 'Ticket') {
+                    layer.open({
+                        type: 2,
+                        title: '工单详情',
+                        content: '/Ticket/Detail?id=' + d.BizId,
+                        area: ['1000px', '650px']
+                    });
+                } else if (d.BizType === 'Asset') {
+                    layer.open({
+                        type: 2,
+                        title: '资产详情',
+                        content: '/Asset/Detail?id=' + d.BizId,
+                        area: ['1000px', '650px']
+                    });
+                } else if (d.BizType === 'User') {
+                    layer.msg('用户模块：BizId=' + d.BizId, { icon: 0 });
+                } else if (d.BizType === 'Role') {
+                    layer.msg('角色模块：BizId=' + d.BizId, { icon: 0 });
+                } else if (d.BizType === 'MenuAuth') {
+                    layer.msg('菜单授权：RoleId=' + d.BizId + '（可跳 /System/RoleMenu）', { icon: 0 });
+                } else {
+                    layer.msg('未知模块：' + d.BizType, { icon: 0 });
+                }
+
+                return;
+            }
+        });
+
+        function formatTime(v) {
+            if (!v) return '';
+            if (typeof v === 'string' && v.indexOf('/Date(') === 0) {
+                var ms = parseInt(v.replace('/Date(', '').replace(')/', ''));
+                var dt = new Date(ms);
+                return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate())
+                    + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+            }
+            return v;
+        }
+        function pad(n) { return n < 10 ? '0' + n : n; }
+    });
+</script>

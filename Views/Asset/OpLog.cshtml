@@ -1,0 +1,125 @@
+﻿@{
+    ViewBag.Title = "资产操作记录";
+    Layout = null;
+}
+
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <blockquote class="layui-elem-quote layui-text">资产操作记录</blockquote>
+
+    <div class="layui-form layui-card" style="padding:15px;">
+        <div class="layui-row layui-col-space12">
+            <div class="layui-col-md3">
+                <input type="text" id="keyword" placeholder="关键词：资产编号/名称" class="layui-input" />
+            </div>
+
+            <div class="layui-col-md2">
+                <select id="opType">
+                    <option value="">类型(全部)</option>
+                    <option value="1">入库</option>
+                    <option value="2">领用</option>
+                    <option value="3">归还</option>
+                    <option value="4">报废</option>
+                    <option value="5">维修</option>
+                </select>
+            </div>
+
+            <div class="layui-col-md2">
+                <input type="text" id="from" placeholder="开始时间" class="layui-input" />
+            </div>
+            <div class="layui-col-md2">
+                <input type="text" id="to" placeholder="结束时间" class="layui-input" />
+            </div>
+
+            <div class="layui-col-md3" style="text-align:right;">
+                <button class="layui-btn" id="btnSearch"><i class="layui-icon layui-icon-search"></i> 查询</button>
+            </div>
+        </div>
+    </div>
+
+    <table id="logTable" lay-filter="logTable"></table>
+
+    <script type="text/html" id="assetTpl">
+        <a href="javascript:;" lay-event="assetDetail">{{d.AssetNo}}</a>
+    </script>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['table','laydate','layer','form'], function(){
+    var table = layui.table;
+    var laydate = layui.laydate;
+    var layer = layui.layer;
+    var $ = layui.$;
+
+    laydate.render({ elem:'#from', type:'datetime' });
+    laydate.render({ elem:'#to', type:'datetime' });
+
+    table.render({
+        elem:'#logTable',
+        id:'logTable',
+        url:'/Asset/OpLogListJson',
+        method:'get',
+        page:true,
+        limit:20,
+        cols:[[
+            { field:'CreatedAt', title:'时间', width:180, templet:function(d){ return formatTime(d.CreatedAt); } },
+            { field:'AssetNo', title:'资产编号', width:160, templet:'#assetTpl' },
+            { field:'AssetName', title:'资产名称', minWidth:200 },
+            { field:'OpType', title:'类型', width:100, templet:function(d){ return opText(d.OpType); } },
+            { field:'OperatorName', title:'操作人', width:120 },
+            { field:'Remark', title:'备注', minWidth:260 }
+        ]]
+    });
+
+    $('#btnSearch').on('click', function(){
+        table.reload('logTable', {
+            page:{ curr:1 },
+            where:{
+                keyword: $('#keyword').val(),
+                opType: $('#opType').val(),
+                from: $('#from').val(),
+                to: $('#to').val()
+            }
+        });
+    });
+
+    table.on('tool(logTable)', function(obj){
+        var d = obj.data;
+        if(obj.event === 'assetDetail'){
+            layer.open({
+                type: 2,
+                title: '资产详情 - ' + d.AssetNo,
+                content: '/Asset/Detail?id=' + d.AssetId,
+                area: ['1000px','650px']
+            });
+        }
+    });
+
+    function opText(v){
+        switch(v){
+            case 1: return '入库';
+            case 2: return '领用';
+            case 3: return '归还';
+            case 4: return '报废';
+            case 5: return '维修';
+            default: return v;
+        }
+    }
+
+    function formatTime(v){
+        if(!v) return '';
+        if(typeof v === 'string' && v.indexOf('/Date(') === 0){
+            var ms = parseInt(v.replace('/Date(', '').replace(')/', ''));
+            var dt = new Date(ms);
+            return dt.getFullYear() + '-' + pad(dt.getMonth()+1) + '-' + pad(dt.getDate())
+                + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+        }
+        return v;
+    }
+    function pad(n){ return n < 10 ? '0'+n : n; }
+});
+</script>

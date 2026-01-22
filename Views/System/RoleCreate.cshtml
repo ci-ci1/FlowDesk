@@ -1,0 +1,63 @@
+﻿@{
+    ViewBag.Title = "新增角色";
+    Layout = null;
+}
+<link href="~/Content/layui/css/layui.css" rel="stylesheet" />
+
+<div style="padding:15px;">
+    <form class="layui-form" style="max-width:520px;">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">Code</label>
+            <div class="layui-input-block">
+                <input type="text" name="code" required lay-verify="required" placeholder="如：agent" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">Name</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" required lay-verify="required" placeholder="如：工单处理人" class="layui-input" />
+            </div>
+        </div>
+
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">备注</label>
+            <div class="layui-input-block">
+                <textarea name="remark" class="layui-textarea"></textarea>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="submit">提交</button>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.js"></script>
+<script src="~/Content/layui/layui.js"></script>
+
+<script>
+layui.use(['form','layer'], function(){
+    var form = layui.form;
+    var layer = layui.layer;
+    var $ = layui.$;
+
+    form.on('submit(submit)', function(data){
+        $.post('/System/RoleCreatePost', data.field, function(res){
+            if(res.code===0){
+                layer.msg('创建成功', {icon:1, time:600}, function(){
+                    var index = parent.layer.getFrameIndex(window.name);
+                    parent.layer.close(index);
+                });
+            }else{
+                layer.msg(res.msg||'创建失败', {icon:5});
+            }
+        });
+        return false;
+    });
+});
+</script>

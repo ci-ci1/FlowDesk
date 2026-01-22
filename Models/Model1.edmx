@@ -61,6 +61,21 @@
           <Property Name="Status" Type="tinyint" Nullable="false" />
           <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
         </EntityType>
+        <EntityType Name="AuditLogs">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="BizType" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="BizId" Type="bigint" />
+          <Property Name="Action" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="OperatorId" Type="bigint" Nullable="false" />
+          <Property Name="OperatorName" Type="nvarchar" MaxLength="100" />
+          <Property Name="Remark" Type="nvarchar" MaxLength="500" />
+          <Property Name="BeforeJson" Type="nvarchar(max)" />
+          <Property Name="AfterJson" Type="nvarchar(max)" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
+        </EntityType>
         <EntityType Name="Menus">
           <Key>
             <PropertyRef Name="Id" />
@@ -343,6 +358,7 @@
           <EntitySet Name="Assets" EntityType="Self.Assets" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AssetTickets" EntityType="Self.AssetTickets" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AssetTypes" EntityType="Self.AssetTypes" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AuditLogs" EntityType="Self.AuditLogs" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Menus" EntityType="Self.Menus" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="RoleMenus" EntityType="Self.RoleMenus" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Roles" EntityType="Self.Roles" Schema="dbo" store:Type="Tables" />
@@ -477,6 +493,7 @@
             <End Role="Tickets" EntitySet="Tickets" />
             <End Role="AssetTickets" EntitySet="AssetTickets" />
           </AssociationSet>
+          <EntitySet Name="AuditLogs" EntityType="FlowDeskModel.AuditLogs" />
         </EntityContainer>
         <EntityType Name="Users">
           <Key>
@@ -863,6 +880,21 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="AuditLogs">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="BizType" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="BizId" Type="Int64" />
+          <Property Name="Action" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="OperatorId" Type="Int64" Nullable="false" />
+          <Property Name="OperatorName" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="Remark" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="BeforeJson" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="AfterJson" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
+        </EntityType>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -1066,6 +1098,22 @@
                 <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
                 <ScalarProperty Name="TicketId" ColumnName="TicketId" />
                 <ScalarProperty Name="AssetId" ColumnName="AssetId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AuditLogs">
+            <EntityTypeMapping TypeName="FlowDeskModel.AuditLogs">
+              <MappingFragment StoreEntitySet="AuditLogs">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="AfterJson" ColumnName="AfterJson" />
+                <ScalarProperty Name="BeforeJson" ColumnName="BeforeJson" />
+                <ScalarProperty Name="Remark" ColumnName="Remark" />
+                <ScalarProperty Name="OperatorName" ColumnName="OperatorName" />
+                <ScalarProperty Name="OperatorId" ColumnName="OperatorId" />
+                <ScalarProperty Name="Action" ColumnName="Action" />
+                <ScalarProperty Name="BizId" ColumnName="BizId" />
+                <ScalarProperty Name="BizType" ColumnName="BizType" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

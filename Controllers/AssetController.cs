@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using FlowDesk.Services;
 
 namespace FlowDesk.Controllers
 {
@@ -16,6 +17,7 @@ namespace FlowDesk.Controllers
     public class AssetController : Controller
     {
         private readonly FlowDeskEntities db = new FlowDeskEntities();
+        private string J(object obj) => new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(obj);
 
         #region 列表页
         public ActionResult Index()
@@ -151,6 +153,10 @@ namespace FlowDesk.Controllers
                     db.SaveChanges();
 
                     AddOpLog(a.Id, 1, null, a.Status, null, null, me.Id, "入库");
+
+                    AuditService.Add(db, "Asset", a.Id, "CREATE", me,
+    "资产入库：" + a.AssetNo + "；名称：" + a.Name);
+
                     db.SaveChanges();
 
                     tx.Commit();
@@ -245,13 +251,34 @@ namespace FlowDesk.Controllers
 
             var fromStatus = a.Status;
             var fromOwner = a.OwnerUserId;
-
+            var beforeJson = J(new
+            {
+                a.Id,
+                a.AssetNo,
+                Status = a.Status,
+                OwnerUserId = a.OwnerUserId
+            });
             a.OwnerUserId = toOwnerId;
             a.Status = (byte)2; // 使用中
 
             AddOpLog(a.Id, 2, fromStatus, a.Status, fromOwner, a.OwnerUserId, me.Id,
                 string.IsNullOrWhiteSpace(remark) ? "领用" : remark.Trim());
 
+            // ✅ 写审计（SaveChanges 前）
+            AuditService.Add(db, "Asset", a.Id, "CHECKOUT", me,
+                "资产领用：" + a.AssetNo + " -> OwnerId=" + toOwnerId);
+            var afterJson = J(new
+            {
+                a.Id,
+                a.AssetNo,
+                Status = a.Status,
+                OwnerUserId = a.OwnerUserId
+            });
+
+            AuditService.Add(db, "Asset", a.Id, "CHECKOUT", me,
+                "资产领用：" + a.AssetNo + " -> OwnerId=" + toOwnerId,
+                beforeJson: beforeJson,
+                afterJson: afterJson);
             db.SaveChanges();
             return Json(new { code = 0, msg = "ok" });
         }
@@ -269,7 +296,13 @@ namespace FlowDesk.Controllers
             if (a == null) return Json(new { code = 1, msg = "资产不存在" });
 
             if (a.Status != (byte)2) return Json(new { code = 1, msg = "仅使用中资产可归还" });
-
+            var beforeJson = J(new
+            {
+                a.Id,
+                a.AssetNo,
+                Status = a.Status,
+                OwnerUserId = a.OwnerUserId
+            });
             var fromStatus = a.Status;
             var fromOwner = a.OwnerUserId;
 
@@ -279,6 +312,20 @@ namespace FlowDesk.Controllers
             AddOpLog(a.Id, 3, fromStatus, a.Status, fromOwner, null, me.Id,
                 string.IsNullOrWhiteSpace(remark) ? "归还" : remark.Trim());
 
+            AuditService.Add(db, "Asset", a.Id, "RETURN", me,
+    "资产归还：" + a.AssetNo);
+            var afterJson = J(new
+            {
+                a.Id,
+                a.AssetNo,
+                Status = a.Status,
+                OwnerUserId = a.OwnerUserId
+            });
+
+            AuditService.Add(db, "Asset", a.Id, "RETURN", me,
+                "资产归还：" + a.AssetNo,
+                beforeJson: beforeJson,
+                afterJson: afterJson);
             db.SaveChanges();
             return Json(new { code = 0, msg = "ok" });
         }
@@ -296,7 +343,13 @@ namespace FlowDesk.Controllers
             if (a == null) return Json(new { code = 1, msg = "资产不存在" });
 
             if (a.Status == (byte)4) return Json(new { code = 1, msg = "资产已报废" });
-
+            var beforeJson = J(new
+            {
+                a.Id,
+                a.AssetNo,
+                Status = a.Status,
+                OwnerUserId = a.OwnerUserId
+            });
             var fromStatus = a.Status;
             var fromOwner = a.OwnerUserId;
 
@@ -305,7 +358,20 @@ namespace FlowDesk.Controllers
 
             AddOpLog(a.Id, 4, fromStatus, a.Status, fromOwner, null, me.Id,
                 string.IsNullOrWhiteSpace(remark) ? "报废" : remark.Trim());
+            AuditService.Add(db, "Asset", a.Id, "SCRAP", me,
+    "资产报废：" + a.AssetNo + "；备注：" + (string.IsNullOrWhiteSpace(remark) ? "-" : remark.Trim()));
+            var afterJson = J(new
+            {
+                a.Id,
+                a.AssetNo,
+                Status = a.Status,
+                OwnerUserId = a.OwnerUserId
+            });
 
+            AuditService.Add(db, "Asset", a.Id, "SCRAP", me,
+                "资产报废：" + a.AssetNo + "；备注：" + (string.IsNullOrWhiteSpace(remark) ? "-" : remark.Trim()),
+                beforeJson: beforeJson,
+                afterJson: afterJson);
             db.SaveChanges();
             return Json(new { code = 0, msg = "ok" });
         }
@@ -331,7 +397,8 @@ namespace FlowDesk.Controllers
 
             AddOpLog(a.Id, 5, fromStatus, a.Status, fromOwner, fromOwner, me.Id,
                 string.IsNullOrWhiteSpace(remark) ? "维修" : remark.Trim());
-
+            AuditService.Add(db, "Asset", a.Id, "REPAIR", me,
+    "资产维修：" + a.AssetNo + "；备注：" + (string.IsNullOrWhiteSpace(remark) ? "-" : remark.Trim()));
             db.SaveChanges();
             return Json(new { code = 0, msg = "ok" });
         }
@@ -512,6 +579,8 @@ namespace FlowDesk.Controllers
             using (var ms = new MemoryStream())
             {
                 wb.Write(ms);
+                AuditService.Add(db, "Asset", null, "EXPORT", me, "资产导出（按筛选）");
+                db.SaveChanges();
                 return File(ms.ToArray(),
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     "Assets_Export.xlsx");
@@ -634,6 +703,8 @@ namespace FlowDesk.Controllers
                             tx.Rollback();
                             return Json(new { code = 1, msg = "导入失败（请修正后重试）", data = new { errors } });
                         }
+                        AuditService.Add(db, "Asset", null, "IMPORT", me,
+    "资产Excel导入成功；新增：" + success + " 条；文件：" + file.FileName);
 
                         db.SaveChanges();
                         tx.Commit();
@@ -662,6 +733,82 @@ namespace FlowDesk.Controllers
             DateTime dt;
             if (DateTime.TryParse(s, out dt)) return dt.Date;
             return null;
+        }
+
+        // 资产操作记录页
+        public ActionResult OpLog()
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return RedirectToAction("LoginIndex", "Login");
+
+            // 可选：只有管理员可看全部；非管理员只看自己名下资产的操作记录
+            ViewBag.IsAdmin = IsAdmin(me.Id);
+            return View();
+        }
+
+        [HttpGet]
+        public ActionResult OpLogListJson(int page = 1, int limit = 20,
+    string keyword = null,        // 资产编号/名称
+    byte? opType = null,
+    long? operatorId = null,
+    DateTime? from = null,
+    DateTime? to = null)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" }, JsonRequestBehavior.AllowGet);
+
+            bool isAdmin = IsAdmin(me.Id);
+
+            var q = from l in db.AssetOpLogs
+                    join a in db.Assets on l.AssetId equals a.Id
+                    join op0 in db.Users on l.OperatorId equals op0.Id into op1
+                    from op in op1.DefaultIfEmpty()
+                    where a.IsDeleted == false
+                    select new
+                    {
+                        l.Id,
+                        l.AssetId,
+                        AssetNo = a.AssetNo,
+                        AssetName = a.Name,
+                        l.OpType,
+                        l.FromStatus,
+                        l.ToStatus,
+                        l.FromOwnerId,
+                        l.ToOwnerId,
+                        OperatorId = l.OperatorId,
+                        OperatorName = (op == null ? "" : op.RealName),
+                        l.Remark,
+                        l.CreatedAt,
+                        OwnerUserId = a.OwnerUserId
+                    };
+
+            // 数据权限：非 admin 只看自己名下资产
+            if (!isAdmin)
+            {
+                long myId = me.Id;
+                q = q.Where(x => x.OwnerUserId == myId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                q = q.Where(x => x.AssetNo.Contains(keyword) || x.AssetName.Contains(keyword));
+
+            if (opType.HasValue)
+                q = q.Where(x => x.OpType == opType.Value);
+
+            if (operatorId.HasValue)
+                q = q.Where(x => x.OperatorId == operatorId.Value);
+
+            if (from.HasValue) q = q.Where(x => x.CreatedAt >= from.Value);
+            if (to.HasValue) q = q.Where(x => x.CreatedAt <= to.Value);
+
+            var total = q.Count();
+
+            var list = q.OrderByDescending(x => x.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .ToList();
+
+            return Json(new { code = 0, msg = "", count = total, data = list }, JsonRequestBehavior.AllowGet);
         }
 
         private string AssetStatusText(byte v)
