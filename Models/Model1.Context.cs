@@ -40,5 +40,7 @@ namespace FlowDesk.Models
         public virtual DbSet<AssetTypes> AssetTypes { get; set; }
         public virtual DbSet<AssetTickets> AssetTickets { get; set; }
         public virtual DbSet<AuditLogs> AuditLogs { get; set; }
+        public virtual DbSet<DictItems> DictItems { get; set; }
+        public virtual DbSet<DictTypes> DictTypes { get; set; }
     }
 }

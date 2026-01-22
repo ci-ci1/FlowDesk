@@ -748,5 +748,179 @@ namespace FlowDesk.Controllers
 
             return Json(new { code = 0, data = result }, JsonRequestBehavior.AllowGet);
         }
+
+
+        // ===================== 数据字典 =====================
+
+        // 字典类型页面
+        public ActionResult Dict()
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return RedirectToAction("LoginIndex", "Login");
+            if (!IsAdmin(me.Id)) return Content("无权限（仅管理员）");
+            return View();
+        }
+
+        // 字典类型列表
+        [HttpGet]
+        public ActionResult DictTypeListJson(int page = 1, int limit = 20, string keyword = null)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" }, JsonRequestBehavior.AllowGet);
+            if (!IsAdmin(me.Id)) return Json(new { code = 1, msg = "无权限（仅管理员）" }, JsonRequestBehavior.AllowGet);
+
+            var q = db.DictTypes.Where(x => x.IsDeleted == false);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                q = q.Where(x => x.Code.Contains(keyword) || x.Name.Contains(keyword));
+
+            var total = q.Count();
+
+            var list = q.OrderBy(x => x.Id)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(x => new { x.Id, x.Code, x.Name, x.Status, x.Remark })
+                .ToList();
+
+            return Json(new { code = 0, msg = "", count = total, data = list }, JsonRequestBehavior.AllowGet);
+        }
+
+        // 新增字典类型
+        [HttpPost]
+        public ActionResult DictTypeCreate(string code, string name, string remark)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+            if (!IsAdmin(me.Id)) return Json(new { code = 1, msg = "无权限（仅管理员）" });
+
+            if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name))
+                return Json(new { code = 1, msg = "Code/Name 不能为空" });
+
+            code = code.Trim();
+            if (db.DictTypes.Any(x => x.IsDeleted == false && x.Code == code))
+                return Json(new { code = 1, msg = "Code 已存在" });
+
+            db.DictTypes.Add(new DictTypes
+            {
+                Code = code,
+                Name = name.Trim(),
+                Remark = remark,
+                Status = 1,
+                IsDeleted = false,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            });
+
+            db.SaveChanges();
+            return Json(new { code = 0, msg = "ok" });
+        }
+
+        // 修改字典类型
+        [HttpPost]
+        public ActionResult DictTypeEdit(long id, string name, string remark, byte status)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+            if (!IsAdmin(me.Id)) return Json(new { code = 1, msg = "无权限（仅管理员）" });
+
+            var t = db.DictTypes.FirstOrDefault(x => x.Id == id && x.IsDeleted == false);
+            if (t == null) return Json(new { code = 1, msg = "字典类型不存在" });
+
+            t.Name = name?.Trim();
+            t.Remark = remark;
+            t.Status = status;
+            t.UpdatedAt = DateTime.Now;
+
+            db.SaveChanges();
+            return Json(new { code = 0, msg = "ok" });
+        }
+
+        // 字典项页面
+        public ActionResult DictItems(long typeId)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return RedirectToAction("LoginIndex", "Login");
+            if (!IsAdmin(me.Id)) return Content("无权限（仅管理员）");
+
+            var type = db.DictTypes.FirstOrDefault(x => x.Id == typeId && x.IsDeleted == false);
+            if (type == null) return Content("字典类型不存在");
+
+            ViewBag.Type = type;
+            return View();
+        }
+
+        // 字典项列表
+        [HttpGet]
+        public ActionResult DictItemListJson(long typeId, int page = 1, int limit = 50, string keyword = null)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" }, JsonRequestBehavior.AllowGet);
+            if (!IsAdmin(me.Id)) return Json(new { code = 1, msg = "无权限（仅管理员）" }, JsonRequestBehavior.AllowGet);
+
+            var q = db.DictItems.Where(x => x.IsDeleted == false && x.TypeId == typeId);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                q = q.Where(x => x.Label.Contains(keyword) || x.Value.Contains(keyword));
+
+            var total = q.Count();
+
+            var list = q.OrderBy(x => x.Sort).ThenBy(x => x.Id)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(x => new { x.Id, x.TypeId, x.Label, x.Value, x.Sort, x.Status, x.Remark })
+                .ToList();
+
+            return Json(new { code = 0, msg = "", count = total, data = list }, JsonRequestBehavior.AllowGet);
+        }
+
+        // 新增字典项
+        [HttpPost]
+        public ActionResult DictItemCreate(long typeId, string label, string value, int sort, string remark)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+            if (!IsAdmin(me.Id)) return Json(new { code = 1, msg = "无权限（仅管理员）" });
+
+            if (string.IsNullOrWhiteSpace(label) || string.IsNullOrWhiteSpace(value))
+                return Json(new { code = 1, msg = "Label/Value 不能为空" });
+
+            db.DictItems.Add(new DictItems
+            {
+                TypeId = typeId,
+                Label = label.Trim(),
+                Value = value.Trim(),
+                Sort = sort,
+                Status = 1,
+                Remark = remark,
+                IsDeleted = false,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            });
+
+            db.SaveChanges();
+            return Json(new { code = 0, msg = "ok" });
+        }
+
+        // 修改字典项
+        [HttpPost]
+        public ActionResult DictItemEdit(long id, string label, string value, int sort, byte status, string remark)
+        {
+            var me = Session["LoginUser"] as Users;
+            if (me == null) return Json(new { code = 1, msg = "未登录" });
+            if (!IsAdmin(me.Id)) return Json(new { code = 1, msg = "无权限（仅管理员）" });
+
+            var item = db.DictItems.FirstOrDefault(x => x.Id == id && x.IsDeleted == false);
+            if (item == null) return Json(new { code = 1, msg = "字典项不存在" });
+
+            item.Label = label?.Trim();
+            item.Value = value?.Trim();
+            item.Sort = sort;
+            item.Status = status;
+            item.Remark = remark;
+            item.UpdatedAt = DateTime.Now;
+
+            db.SaveChanges();
+            return Json(new { code = 0, msg = "ok" });
+        }
     }
 }

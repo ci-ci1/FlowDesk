@@ -76,6 +76,34 @@
           <Property Name="AfterJson" Type="nvarchar(max)" />
           <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
         </EntityType>
+        <EntityType Name="DictItems">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="TypeId" Type="bigint" Nullable="false" />
+          <Property Name="Label" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Value" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Sort" Type="int" Nullable="false" />
+          <Property Name="Status" Type="tinyint" Nullable="false" />
+          <Property Name="Remark" Type="nvarchar" MaxLength="200" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="UpdatedAt" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="IsDeleted" Type="bit" Nullable="false" />
+        </EntityType>
+        <EntityType Name="DictTypes">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Code" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Name" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Remark" Type="nvarchar" MaxLength="200" />
+          <Property Name="Status" Type="tinyint" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="UpdatedAt" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="IsDeleted" Type="bit" Nullable="false" />
+        </EntityType>
         <EntityType Name="Menus">
           <Key>
             <PropertyRef Name="Id" />
@@ -257,6 +285,18 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_DictItems_Type">
+          <End Role="DictTypes" Type="Self.DictTypes" Multiplicity="1" />
+          <End Role="DictItems" Type="Self.DictItems" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="DictTypes">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="DictItems">
+              <PropertyRef Name="TypeId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_RoleMenus_Menus">
           <End Role="Menus" Type="Self.Menus" Multiplicity="1" />
           <End Role="RoleMenus" Type="Self.RoleMenus" Multiplicity="*" />
@@ -359,6 +399,8 @@
           <EntitySet Name="AssetTickets" EntityType="Self.AssetTickets" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AssetTypes" EntityType="Self.AssetTypes" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AuditLogs" EntityType="Self.AuditLogs" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="DictItems" EntityType="Self.DictItems" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="DictTypes" EntityType="Self.DictTypes" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Menus" EntityType="Self.Menus" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="RoleMenus" EntityType="Self.RoleMenus" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Roles" EntityType="Self.Roles" Schema="dbo" store:Type="Tables" />
@@ -384,6 +426,10 @@
           <AssociationSet Name="FK_AssetTickets_Tickets" Association="Self.FK_AssetTickets_Tickets">
             <End Role="Tickets" EntitySet="Tickets" />
             <End Role="AssetTickets" EntitySet="AssetTickets" />
+          </AssociationSet>
+          <AssociationSet Name="FK_DictItems_Type" Association="Self.FK_DictItems_Type">
+            <End Role="DictTypes" EntitySet="DictTypes" />
+            <End Role="DictItems" EntitySet="DictItems" />
           </AssociationSet>
           <AssociationSet Name="FK_RoleMenus_Menus" Association="Self.FK_RoleMenus_Menus">
             <End Role="Menus" EntitySet="Menus" />
@@ -494,6 +540,12 @@
             <End Role="AssetTickets" EntitySet="AssetTickets" />
           </AssociationSet>
           <EntitySet Name="AuditLogs" EntityType="FlowDeskModel.AuditLogs" />
+          <EntitySet Name="DictItems" EntityType="FlowDeskModel.DictItems" />
+          <EntitySet Name="DictTypes" EntityType="FlowDeskModel.DictTypes" />
+          <AssociationSet Name="FK_DictItems_Type" Association="FlowDeskModel.FK_DictItems_Type">
+            <End Role="DictTypes" EntitySet="DictTypes" />
+            <End Role="DictItems" EntitySet="DictItems" />
+          </AssociationSet>
         </EntityContainer>
         <EntityType Name="Users">
           <Key>
@@ -895,6 +947,48 @@
           <Property Name="AfterJson" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
         </EntityType>
+        <EntityType Name="DictItems">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="TypeId" Type="Int64" Nullable="false" />
+          <Property Name="Label" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Value" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Sort" Type="Int32" Nullable="false" />
+          <Property Name="Status" Type="Byte" Nullable="false" />
+          <Property Name="Remark" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="UpdatedAt" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="IsDeleted" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="DictTypes" Relationship="FlowDeskModel.FK_DictItems_Type" FromRole="DictItems" ToRole="DictTypes" />
+        </EntityType>
+        <EntityType Name="DictTypes">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Code" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Name" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Remark" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="Status" Type="Byte" Nullable="false" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="UpdatedAt" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="IsDeleted" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="DictItems" Relationship="FlowDeskModel.FK_DictItems_Type" FromRole="DictTypes" ToRole="DictItems" />
+        </EntityType>
+        <Association Name="FK_DictItems_Type">
+          <End Type="FlowDeskModel.DictTypes" Role="DictTypes" Multiplicity="1" />
+          <End Type="FlowDeskModel.DictItems" Role="DictItems" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="DictTypes">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="DictItems">
+              <PropertyRef Name="TypeId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -1113,6 +1207,36 @@
                 <ScalarProperty Name="Action" ColumnName="Action" />
                 <ScalarProperty Name="BizId" ColumnName="BizId" />
                 <ScalarProperty Name="BizType" ColumnName="BizType" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="DictItems">
+            <EntityTypeMapping TypeName="FlowDeskModel.DictItems">
+              <MappingFragment StoreEntitySet="DictItems">
+                <ScalarProperty Name="IsDeleted" ColumnName="IsDeleted" />
+                <ScalarProperty Name="UpdatedAt" ColumnName="UpdatedAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Remark" ColumnName="Remark" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="Sort" ColumnName="Sort" />
+                <ScalarProperty Name="Value" ColumnName="Value" />
+                <ScalarProperty Name="Label" ColumnName="Label" />
+                <ScalarProperty Name="TypeId" ColumnName="TypeId" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="DictTypes">
+            <EntityTypeMapping TypeName="FlowDeskModel.DictTypes">
+              <MappingFragment StoreEntitySet="DictTypes">
+                <ScalarProperty Name="IsDeleted" ColumnName="IsDeleted" />
+                <ScalarProperty Name="UpdatedAt" ColumnName="UpdatedAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="Remark" ColumnName="Remark" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="Code" ColumnName="Code" />
                 <ScalarProperty Name="Id" ColumnName="Id" />
               </MappingFragment>
             </EntityTypeMapping>
